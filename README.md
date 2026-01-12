@@ -87,3 +87,10 @@ backend/
 - Balancing **automatic stack trace capture** with the ability to provide a custom stack trace.  
 - Writing JSDoc that is **clear and easy to understand** for when I revisit this code later.  
 
+## Lessons Learned
+
+- Extending built-in classes in TypeScript requires careful handling of the **prototype chain**.
+- TypeScript **type safety** makes structured error handling much more reliable.
+- Writing **detailed JSDoc and inline comments** is extremely valuable for future reference.
+- Small design decisions, like supporting both custom and automatic stack traces, save headaches later.
+
