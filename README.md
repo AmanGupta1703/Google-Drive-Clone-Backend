@@ -62,3 +62,28 @@ backend/
   "semi": false
 }
 ```
+
+## Commit: 196a391
+
+### What I Did 
+
+- Implemented a **custom API error handling system** in TypeScript.  
+- Created an `ApiError` class extending the built-in `Error` to standardize API error responses.  
+- Defined a structured `ApiErrorDetails` interface for field-specific error messages.  
+- Added **typed properties** to `ApiError`:
+  - `statusCode` – HTTP status code  
+  - `success` – always `false` for errors  
+  - `errors` – array of detailed error messages  
+  - `data` – always `null`  
+- Ensured proper **prototype chain** handling so `instanceof ApiError` works correctly.  
+- Added support for **optional custom stack traces**, with automatic stack capture if not provided.  
+- Wrote **detailed JSDoc comments** and inline explanations for future reference.  
+- Structured the code in a TypeScript-friendly way to leverage **type safety** and clear error contracts.  
+
+## Difficulties Faced
+
+- Understanding how to **extend built-in classes** like `Error` in TypeScript while keeping the prototype chain intact.  
+- Ensuring **type-safe error structures** that can handle both simple strings and detailed field-based errors.  
+- Balancing **automatic stack trace capture** with the ability to provide a custom stack trace.  
+- Writing JSDoc that is **clear and easy to understand** for when I revisit this code later.  
+
