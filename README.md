@@ -11,21 +11,25 @@ Built with Node.js, Express, MongoDB, and Multer.
 backend/
 │
 ├── public/
-│   └── temp/               # Temporary staging folder for uploads
+│   └── temp/
 │
 ├── src/
-│   ├── controllers/        # Route handlers (business logic)
-│   ├── db/                 # MongoDB connection logic
-│   ├── middlewares/        # Auth, validation, error handlers
-│   ├── models/             # Mongoose schemas & models
-│   ├── routes/             # Express routers
-│   ├── utils/              # Shared helpers (validators, logger, etc.)
+│   ├── controllers/
+│   ├── db/
+│   ├── middlewares/
+│   ├── models/
+│   ├── routes/
+│   ├── utils/
+│   │   ├── ApiError.ts
+│   │   ├── ApiResponse.ts
+│   │   ├── asyncHandler.ts
+│   │   └── HttpStatus.ts
 │   │
-│   ├── app.ts              # Express app configuration
-│   ├── constants.ts        # Environment-based constants
-│   └── index.ts            # Application entry point
+│   ├── app.ts
+│   ├── constants.ts
+│   └── index.ts
 │
-├── .env.example             # Environment variable template
+├── .env.example
 ├── .gitignore
 ├── .prettierrc
 ├── .prettierignore
