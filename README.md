@@ -100,6 +100,8 @@ backend/
 - Writing **detailed JSDoc and inline comments** is extremely valuable for future reference.
 - Small design decisions, like supporting both custom and automatic stack traces, save headaches later.
 
+---
+
 ## 🚀 Day 2
 
 | Task                       | Status |
@@ -132,12 +134,17 @@ backend/
 - Keeping success and error responses separate makes the code cleaner.
 - Simple documentation is helpful when coming back to the code later.
 
-## 🚀 Day X
+---
 
-| Task                          | Status |
-| ----------------------------- | ------ |
-| Create `asyncHandler` utility | ✅     |
-| Add proper TypeScript typing  | ✅     |
+## 🚀 Day 3 
+
+| Task                                  | Status |
+| ------------------------------------- | ------ |
+| Initialize Express app & middleware   | ✅     |
+| Configure MongoDB connection logic    | ✅     |
+| Setup Environment Variable management | ✅     |
+| Create `asyncHandler` utility         | ✅     |
+| Add proper TypeScript typing          | ✅     |
 
 ## Commit: 8b36fd8
 
@@ -161,3 +168,24 @@ backend/
 - `Promise.resolve()` allows handling both sync and async errors in one place.
 - Using `RequestHandler` is better than using the generic `Function` type.
 - Simple utility functions can greatly reduce repeated `try/catch` blocks.
+
+## Commit: 24bf63e
+
+### What I Did
+
+- **Initialized Express Server:** Configured the core `app` instance with essential security and parsing middleware (`cors`, `cookieParser`, `json`, and `urlencoded`).
+- **Database Integration:** Created a robust MongoDB connection utility using `mongoose` and handled connection lifecycle events.
+- **Environment Management:** Integrated `dotenv` to manage sensitive credentials like `MONGODB_URI` and `CORS_ORIGIN`.
+- **Static Asset Support:** Set up a `public` directory to serve static files locally.
+- **Project Bootstrapping:** Structured the entry point to ensure the database connects successfully before the server starts listening on a port.
+
+### Difficulties Faced
+
+- **CORS Configuration:** Ensuring `credentials: true` was set correctly to allow the backend to receive cookies from the frontend.
+- **Connection Sequencing:** Figuring out the best pattern to ensure the Express app doesn't start accepting requests until the MongoDB connection is fully established.
+- **Payload Limits:** Deciding on a reasonable body size limit (`16kb`) to protect the server from large, malicious JSON payloads.
+
+### Lessons Learned
+
+- **Process Management:** Learned that using `process.exit(1)` is a clean way to shut down the application if a critical dependency (like the database) fails.
+- **Modularization:** Discovered that separating the Express app logic from the database connection logic makes the codebase cleaner and easier to test. 
