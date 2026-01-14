@@ -131,3 +131,33 @@ backend/
 - Using `readonly` helps keep API responses immutable.
 - Keeping success and error responses separate makes the code cleaner.
 - Simple documentation is helpful when coming back to the code later.
+
+## 🚀 Day X
+
+| Task                          | Status |
+| ----------------------------- | ------ |
+| Create `asyncHandler` utility | ✅     |
+| Add proper TypeScript typing  | ✅     |
+
+## Commit: 8b36fd8
+
+### What I Did
+
+- Created an `asyncHandler` utility function to wrap Express route handlers.
+- Used Express’s built-in `RequestHandler` type for proper typing.
+- Ensured both **synchronous errors** and **async promise rejections** are handled.
+- Forwarded errors to Express using `next(err)` so they reach error middleware.
+- Kept the function small and easy to understand without advanced TypeScript.
+
+### Difficulties Faced
+
+- Understanding why Express doesn’t automatically catch errors from async functions.
+- Learning the difference between normal middleware and error-handling middleware.
+- Figuring out how to type the function without using overly complex generics.
+
+### Lessons Learned
+
+- Express needs `next(err)` to handle errors correctly.
+- `Promise.resolve()` allows handling both sync and async errors in one place.
+- Using `RequestHandler` is better than using the generic `Function` type.
+- Simple utility functions can greatly reduce repeated `try/catch` blocks.
