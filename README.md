@@ -136,7 +136,7 @@ backend/
 
 ---
 
-## 🚀 Day 3 
+## 🚀 Day 3
 
 | Task                                  | Status |
 | ------------------------------------- | ------ |
@@ -188,4 +188,37 @@ backend/
 ### Lessons Learned
 
 - **Process Management:** Learned that using `process.exit(1)` is a clean way to shut down the application if a critical dependency (like the database) fails.
-- **Modularization:** Discovered that separating the Express app logic from the database connection logic makes the codebase cleaner and easier to test. 
+- **Modularization:** Discovered that separating the Express app logic from the database connection logic makes the codebase cleaner and easier to test.
+
+---
+
+## 🚀 Day 4
+
+| Task                                  | Status |
+| ------------------------------------- | ------ |
+| Create User Schema & Email Validation | ✅     |
+| Setup Password Hashing (bcrypt)       | ✅     |
+| Implement JWT Token generation logic  | ✅     |
+| Create TypeScript Interface for User  | ✅     |
+| Add Auto-generated Avatars            | ✅     |
+
+## Commit: cfc0994
+
+### What I Did
+
+- **Built the User Blueprint:** Created a Mongoose schema that defines what a "User" looks like (name, email, password, etc.).
+- **Added Security:** Used `bcrypt` to scramble passwords before they are saved to the database. This ensures that even if the database is accessed, the real passwords remain hidden.
+- **Automated Avatars:** Linked the email to the DiceBear API so every new user automatically gets a unique profile picture based on their email string.
+- **JWT Integration:** Wrote functions to generate "Access" and "Refresh" tokens. These act like digital ID cards to keep users securely logged in.
+- **Strict Typing:** Created a TypeScript interface (`IUser`) so the code editor provides helpful autocomplete and catches errors early.
+
+### Difficulties Faced
+
+- **Handling `this` in TypeScript:** Mongoose functions can sometimes lose track of what `this` refers to. I learned to use `HydratedDocument` to tell TypeScript that `this` represents a real User document.
+- **Preventing Double Hashing:** I had to make sure the password hashing only runs when the password is actually changed, otherwise, the user would be locked out after a simple profile update.
+
+### Lessons Learned
+
+- **Schema Protections:** Using `select: false` on the password field is a great "safety net" to make sure passwords aren't accidentally sent back in API responses.
+- **Data Cleanup:** Simple settings like `lowercase: true` and `trim` in the schema help keep the database clean and prevent login issues caused by extra spaces.
+- **Instance Methods:** Putting token logic directly inside the User model makes the code much more organized and "DRY" (Don't Repeat Yourself).
