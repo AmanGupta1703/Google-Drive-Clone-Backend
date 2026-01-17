@@ -11,29 +11,42 @@ Built with Node.js, Express, MongoDB, and Multer.
 backend/
 │
 ├── public/
-│   └── temp/
+│   └── temp/
 │
 ├── src/
-│   ├── controllers/
-│   ├── db/
-│   ├── middlewares/
-│   ├── models/
-│   ├── routes/
-│   ├── utils/
-│   │   ├── ApiError.ts
-│   │   ├── ApiResponse.ts
-│   │   ├── asyncHandler.ts
-│   │   └── HttpStatus.ts
-│   │
-│   ├── app.ts
-│   ├── constants.ts
-│   └── index.ts
+│   ├── config/
+│   │   └── index.ts
+│   │
+│   ├── controllers/
+│   │   └── user.controller.ts
+│   │
+│   ├── db/
+│   │   └── index.ts
+│   │
+│   ├── middlewares/
+│   │
+│   ├── models/
+│   │   ├── interfaces/
+│   │   │   └── IUser.ts
+│   │   └── user.model.ts
+│   │
+│   ├── routes/
+│   │   └── user.route.ts
+│   │
+│   ├── utils/
+│   │   ├── ApiError.ts
+│   │   ├── ApiResponse.ts
+│   │   ├── asyncHandler.ts
+│   │   └── HttpStatus.ts
+│   │
+│   ├── app.ts
+│   ├── constants.ts
+│   └── index.ts
 │
 ├── .env.example
 ├── .gitignore
 ├── .prettierrc
 ├── .prettierignore
-├── nodemon.json
 ├── package.json
 ├── package-lock.json
 ├── tsconfig.json
