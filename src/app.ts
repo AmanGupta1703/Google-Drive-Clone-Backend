@@ -33,4 +33,8 @@ app.use(express.static('public'))
 // This allows the server to read, create, and update cookies on the user's browser.
 app.use(cookieParser())
 
+import userRouter from './routes/user.route.js'
+
+app.use('/api/v1/users', userRouter)
+
 export { app }

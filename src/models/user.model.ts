@@ -75,11 +75,15 @@ userSchema.pre('save', async function (this: HydratedDocument<IUser>) {
   this.password = await bcrypt.hash(this.password, 10)
 })
 
+userSchema.methods.isPasswordCorrect = async function (password: string) {
+  return await bcrypt.compare(password, this.password)
+}
+
 userSchema.methods.generateAccessToken = function () {
   const payload: { _id: Types.ObjectId } = { _id: this._id }
-  const secret = config.refreshTokenSecret as Secret
+  const secret = config.auth.accessToken.secret as Secret
   const options = {
-    expiresIn: config.refreshTokenExpiry,
+    expiresIn: config.auth.accessToken.expiry,
   } as SignOptions
 
   return jwt.sign(payload, secret, options)
@@ -87,9 +91,9 @@ userSchema.methods.generateAccessToken = function () {
 
 userSchema.methods.generateRefreshToken = function () {
   const payload: { _id: Types.ObjectId } = { _id: this._id }
-  const secret = config.refreshTokenSecret as Secret
+  const secret = config.auth.refreshToken.secret as Secret
   const options = {
-    expiresIn: config.refreshTokenExpiry,
+    expiresIn: config.auth.refreshToken.expiry,
   } as SignOptions
 
   return jwt.sign(payload, secret, options)
