@@ -222,3 +222,36 @@ backend/
 - **Schema Protections:** Using `select: false` on the password field is a great "safety net" to make sure passwords aren't accidentally sent back in API responses.
 - **Data Cleanup:** Simple settings like `lowercase: true` and `trim` in the schema help keep the database clean and prevent login issues caused by extra spaces.
 - **Instance Methods:** Putting token logic directly inside the User model makes the code much more organized and "DRY" (Don't Repeat Yourself).
+
+---
+
+## 🚀 Day 5
+
+| Task                                  | Status |
+| ------------------------------------- | ------ |
+| Implement `createUser` Controller     | ✅     |
+| Add Request Body Validation           | ✅     |
+| Check for Existing User Conflict      | ✅     |
+| Integrate `asyncHandler` & `ApiError` | ✅     |
+| Standardize Success Response Format   | ✅     |
+
+## Commit: bb99063
+
+### What I Did
+
+- **Developed Registration Logic:** Built the `createUser` controller to handle the end-to-end process of signing up a new user via an API endpoint.
+- **Robust Validation:** Implemented a check to ensure `fullName`, `email`, and `password` are present and not just empty strings before hitting the database.
+- **Conflict Detection:** Added a database check to verify if an email is already registered, throwing a `409 Conflict` error if the user already exists in the system.
+- **Standardized Communication:** Utilized custom `ApiResponse` and `ApiError` utility classes to ensure the frontend receives consistent data structures for both success and failure states.
+- **Async Wrapper:** Integrated the `asyncHandler` utility to keep the code clean and avoid repetitive `try-catch` blocks for asynchronous operations.
+
+### Difficulties Faced
+
+- **TypeScript Express Types:** Explicitly typing the controller parameters with `Request` and `Response` while ensuring the generic `IUser` type was passed to the response wrapper to maintain type safety.
+- **Controller Flow:** Balancing the order of operations—validating input first, checking existing records second, and finally performing the write operation—to optimize performance.
+
+### Lessons Learned
+
+- **Early Returns:** Throwing errors early (fail-fast) prevents unnecessary database calls and keeps the logic flow linear and easy to read.
+- **HTTP Semantics:** Deepened understanding of status codes, specifically choosing `400 Bad Request` for validation issues vs `409 Conflict` for duplicate entries.
+- **Utility Abstractions:** Seeing the benefit of the `asyncHandler` wrapper in action, which significantly reduces boilerplate code in every controller I write.
