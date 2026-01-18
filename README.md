@@ -268,3 +268,37 @@ backend/
 - **Early Returns:** Throwing errors early (fail-fast) prevents unnecessary database calls and keeps the logic flow linear and easy to read.
 - **HTTP Semantics:** Deepened understanding of status codes, specifically choosing `400 Bad Request` for validation issues vs `409 Conflict` for duplicate entries.
 - **Utility Abstractions:** Seeing the benefit of the `asyncHandler` wrapper in action, which significantly reduces boilerplate code in every controller I write.
+
+---
+
+## 🚀 Day 6
+
+| Task                                  | Status |
+| ------------------------------------- | ------ |
+| Implement `login` Controller          | ✅     |
+| Secure Password Verification          | ✅     |
+| JWT Access & Refresh Token Generation | ✅     |
+| Fix Password Selection Logic          | ✅     |
+| Set Secure HttpOnly Cookies           | ✅     |
+
+## Commit: cb5d8d5
+
+### What I Did
+
+- **Authentication Logic:** Developed the `login` controller to authenticate users, verify passwords, and manage sessions via JWTs.
+- **Token Dual-Strategy:** Configured the generation of both short-lived Access Tokens and long-lived Refresh Tokens for a seamless session experience.
+- **Cookie Security:** Implemented `httpOnly` and `secure` flags for cookies to prevent XSS and ensure tokens are only transmitted over HTTPS.
+- **Manual Data Sanitization:** Chose to manage field visibility at the controller level using `.select('-password')` to ensure sensitive credentials are never sent to the frontend.
+
+### Difficulties Faced
+
+- **Schema vs. Instance Methods:** Encountered a bug where setting `select: false` on the password field in the User Model prevented `this.password` from being accessible in the `isPasswordCorrect` method.
+- **Debugging `undefined` Hashes:** Identified that the bcrypt comparison was failing because the password was not being pulled from the database, leading to "Invalid Password" errors even with correct input.
+
+### Lessons Learned
+
+- **Model Design Trade-offs:** Decided to remove `select: false` from the schema level to ensure internal methods (like password validation) always have access to the necessary data without extra query modifiers.
+- **Explicit Exclusion:** Reinforced the habit of using `.select('-password')` in query chains to manually sanitize user objects before returning them in API responses.
+- **Security Best Practices:** Confirmed that generic error messages ("Invalid email or password") are essential to prevent account enumeration, even when debugging internal selection issues.
+
+---
