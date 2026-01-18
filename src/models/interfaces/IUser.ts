@@ -1,6 +1,12 @@
 import { Document } from 'mongoose'
 
-export interface IUser extends Document {
+interface IUserMethods {
+  isPasswordCorrect(password: string): Promise<boolean>
+  generateAccessToken(): string
+  generateRefreshToken(): string
+}
+
+export interface IUser extends Document, IUserMethods {
   email: string
   password: string
   fullName: string

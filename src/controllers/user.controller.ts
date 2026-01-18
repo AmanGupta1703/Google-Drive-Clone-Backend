@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import { Types } from 'mongoose'
 
 import User from '../models/user.model.js'
 
@@ -8,6 +9,29 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
 
 import type { IUser } from '../models/interfaces/IUser.js'
+
+const generateAccessAndRefreshToken = async (userId: Types.ObjectId) => {
+  try {
+    const user = await User.findById(userId)
+
+    if (!user) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'User not found')
+    }
+
+    const refreshToken = user.generateRefreshToken()
+    const accessToken = user.generateAccessToken()
+
+    user.refreshToken = refreshToken
+    user.save({ validateBeforeSave: false })
+
+    return { refreshToken, accessToken }
+  } catch (error) {
+    throw new ApiError(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      'Something went wrong while generating referesh and access token'
+    )
+  }
+}
 
 const createUser = asyncHandler(async (req: Request, res: Response) => {
   const { fullName, email, password } = req.body
@@ -44,4 +68,53 @@ const createUser = asyncHandler(async (req: Request, res: Response) => {
     )
 })
 
-export { createUser }
+const login = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body
+
+  if (!email || !password) {
+    throw new ApiError(HttpStatus.UNAUTHORIZED, 'All fields are required')
+  }
+
+  const user = await User.findOne({ email })
+
+  if (!user) {
+    throw new ApiError(HttpStatus.BAD_REQUEST, 'Invalid email or password')
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(password)
+
+  if (!isPasswordValid) {
+    throw new ApiError(HttpStatus.BAD_REQUEST, 'Invalid email or password')
+  }
+
+  const { refreshToken, accessToken } = await generateAccessAndRefreshToken(
+    user._id
+  )
+
+  const loggedInUser = await User.findById(user._id).select(
+    '-password -refreshToken'
+  )
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  }
+
+  return res
+    .status(HttpStatus.OK)
+    .cookie('accessToken', accessToken, options)
+    .cookie('refreshToken', refreshToken, options)
+    .json(
+      new ApiResponse(
+        HttpStatus.OK,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        'User logged In Successfully'
+      )
+    )
+})
+
+export { createUser, login }

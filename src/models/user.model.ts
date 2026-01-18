@@ -40,7 +40,6 @@ const userSchema: Schema<IUser> = new Schema(
     password: {
       type: String,
       required: [true, 'Password is required'],
-      select: false,
     },
 
     /**
@@ -76,6 +75,7 @@ userSchema.pre('save', async function (this: HydratedDocument<IUser>) {
 })
 
 userSchema.methods.isPasswordCorrect = async function (password: string) {
+  console.log(this)
   return await bcrypt.compare(password, this.password)
 }
 
