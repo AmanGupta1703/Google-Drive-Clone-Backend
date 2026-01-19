@@ -302,3 +302,34 @@ backend/
 - **Security Best Practices:** Confirmed that generic error messages ("Invalid email or password") are essential to prevent account enumeration, even when debugging internal selection issues.
 
 ---
+
+## 🚀 Day 7
+
+| Task                             | Status |
+| -------------------------------- | ------ |
+| Create Logout Function           | ✅     |
+| Build a "Gatekeeper" (verifyJWT) | ✅     |
+| Clear Tokens from Database       | ✅     |
+| Clear Cookies from Browser       | ✅     |
+
+## Commit: b22a5c5
+
+### What I Did
+
+- **The Logout "Eraser":** I wrote a function that tells the database to "forget" the user's Refresh Token using `$unset`. This ensures that even if someone steals the old token, it won't work anymore.
+- **The Gatekeeper (Middleware):** I created a reusable "verifyJWT" tool. It sits in front of private routes and checks if a user has a valid "VIP pass" (Access Token) before letting them in.
+- **Flexible Token Checking:** I made the code smart enough to look for the token in two places: inside cookies (for websites) or in the "Header" (for mobile apps).
+- **Clean Slate:** Used `.clearCookie()` to make sure the user's browser automatically deletes their login info when they click "Logout."
+
+### Difficulties Faced
+
+- **TypeScript "Missing Property" Error:** TypeScript got confused because the standard Express "Request" doesn't usually have a "user" inside it. I had to create a custom "AuthenticatedRequest" to tell TypeScript, "Trust me, I'm adding a user object here."
+- **Middleware Flow:** I had to make sure to call `next()` at the end of my gatekeeper. If you forget this, the website just spins forever and never reaches the next page!
+
+### Lessons Learned
+
+- **Middleware is like a Security Guard:** Instead of writing login-checking code over and over for every page, I can just write it once and "plug it in" wherever I need it.
+- **Why Clear the Database?** I learned that just deleting a cookie isn't enough. By removing the token from the database too, we make the app much safer because the server officially "un-recognizes" that session.
+- **Staying Organized:** Keeping user data (like passwords) out of the `req.user` object using `.select('-password')` is a simple but powerful way to prevent accidental data leaks.
+
+---
