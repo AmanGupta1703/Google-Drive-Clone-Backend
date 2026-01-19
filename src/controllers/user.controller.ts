@@ -9,6 +9,8 @@ import { asyncHandler } from '../utils/asyncHandler.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
 
 import type { IUser } from '../models/interfaces/IUser.js'
+import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js'
+import { secureHeapUsed } from 'node:crypto'
 
 const generateAccessAndRefreshToken = async (userId: Types.ObjectId) => {
   try {
@@ -117,4 +119,29 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     )
 })
 
-export { createUser, login }
+const logout = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $unset: {
+          refreshToken: 1,
+        },
+      },
+      { new: true }
+    )
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    }
+
+    res
+      .status(HttpStatus.OK)
+      .clearCookie('accessToken', options)
+      .clearCookie('refreshToken', options)
+      .json(new ApiResponse(HttpStatus.OK, {}, 'User logged out successfully'))
+  }
+)
+
+export { createUser, login, logout }
