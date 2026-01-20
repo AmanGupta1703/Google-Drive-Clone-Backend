@@ -333,3 +333,36 @@ backend/
 - **Staying Organized:** Keeping user data (like passwords) out of the `req.user` object using `.select('-password')` is a simple but powerful way to prevent accidental data leaks.
 
 ---
+
+---
+
+## 🚀 Day 8
+
+| Task                            | Status |
+| ------------------------------- | ------ |
+| Create Refresh Token Endpoint   | ✅     |
+| Implement Token Rotation        | ✅     |
+| Handle Cookie & Body Extraction | ✅     |
+| Secure Token Verification       | ✅     |
+
+## Commit: 5341268
+
+### What I Did
+
+- **The Token "Refresher":** I built a function that allows users to get a brand new Access Token without having to log in again. This keeps the user logged in seamlessly while maintaining high security.
+- **Token Rotation:** Every time the user asks for a new Access Token, I also generate a new Refresh Token. This "rotation" makes it much harder for hackers to use a stolen token for long.
+- **Dual-Source Extraction:** I set up the code to look for the Refresh Token in either the browser's cookies or the request body. This ensures the API works perfectly for both web browsers and mobile apps.
+- **Auto-Update Cookies:** Used `.cookie()` to automatically send the new tokens back to the user's browser, replacing the old ones instantly.
+
+### Difficulties Faced
+
+- **The "Catch-All" Error Trap:** Handling JWT verification can be tricky because `jwt.verify` throws an error if the token is expired or fake. I had to use a `try-catch` block to ensure the app sends a clean "Unauthorized" message instead of crashing.
+- **Decoding the Payload:** I had to ensure the data inside the token (the Payload) was correctly mapped back to a User ID so I could find the right person in my database.
+
+### Lessons Learned
+
+- **Short-Lived vs. Long-Lived Tokens:** I learned why we use two tokens. The Access Token is short-lived for safety, while the Refresh Token lives longer and stays tucked away until it's needed for a "refill."
+- **Database Synchronization:** Even if a token is technically valid (not expired), we still check the database to make sure the user still exists. This allows us to "ban" or "delete" users instantly if needed.
+- **The Power of httpOnly:** By setting the `httpOnly: true` flag on cookies, I learned that I'm protecting users from XSS attacks because JavaScript can't "read" those sensitive tokens.
+
+---
