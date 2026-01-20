@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import jwt from 'jsonwebtoken'
 import { Types } from 'mongoose'
 
 import User from '../models/user.model.js'
@@ -7,10 +8,13 @@ import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
+import config from '../config/index.js'
 
 import type { IUser } from '../models/interfaces/IUser.js'
-import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js'
-import { secureHeapUsed } from 'node:crypto'
+import type {
+  AuthenticatedRequest,
+  AuthJwtPayload,
+} from '../middlewares/auth.middleware.js'
 
 const generateAccessAndRefreshToken = async (userId: Types.ObjectId) => {
   try {
@@ -144,4 +148,48 @@ const logout = asyncHandler(
   }
 )
 
-export { createUser, login, logout }
+const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
+  const incomingRefreshToken =
+    req.cookies?.refreshToken || req.body?.refreshToken
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(HttpStatus.UNAUTHORIZED, 'unauthorized request')
+  }
+
+  try {
+    const decoded = jwt.verify(
+      incomingRefreshToken,
+      config.auth.refreshToken.secret
+    ) as AuthJwtPayload
+
+    const user = await User.findById(decoded._id)
+
+    if (!user) {
+      throw new ApiError(HttpStatus.UNAUTHORIZED, 'Invalid refresh token')
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessAndRefreshToken(user._id)
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    }
+
+    return res
+      .status(HttpStatus.OK)
+      .cookie('accessToken', accessToken, options)
+      .cookie('refreshToken', newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          { accessToken, refreshToken: newRefreshToken },
+          'Access token refreshed'
+        )
+      )
+  } catch (error) {
+    throw new ApiError(HttpStatus.UNAUTHORIZED, 'Invalid refresh token')
+  }
+})
+
+export { createUser, login, logout, refreshAccessToken }

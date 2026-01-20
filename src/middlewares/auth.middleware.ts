@@ -10,7 +10,7 @@ import config from '../config/index.js'
 import User from '../models/user.model.js'
 import type { IUser } from '../models/interfaces/IUser.js'
 
-interface AuthJwtPayload extends JwtPayload {
+export interface AuthJwtPayload extends JwtPayload {
   _id: Types.ObjectId
 }
 
