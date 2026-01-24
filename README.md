@@ -366,3 +366,31 @@ backend/
 - **The Power of httpOnly:** By setting the `httpOnly: true` flag on cookies, I learned that I'm protecting users from XSS attacks because JavaScript can't "read" those sensitive tokens.
 
 ---
+
+## 🚀 Day 9
+
+| Task                          | Status |
+| ----------------------------- | ------ |
+| Change Password Feature       | ✅     |
+| Current Password Check        | ✅     |
+| Password Matching Logic       | ✅     |
+| Secure Database Saving        | ✅     |
+
+## Commit: 773ff34
+
+### What I Did
+
+- **The Identity Gatekeeper:** I created a way for users to change their password, but only if they know their old one. This adds a layer of security so that if someone walks up to your unlocked computer, they can't easily lock you out of your account.
+- **The Matchmaker:** I added a check to make sure the `newPassword` and the `confirmPassword` are identical. This prevents users from accidentally locking themselves out due to a typo.
+
+### Difficulties Faced
+
+- **The "Missing User" Problem:** Even though the user is logged in, I had to write code to handle the rare case where a user record might be deleted while they are still browsing. Checking `if (!user)` keeps the app from breaking.
+- **Handling Async Code:** In Node.js, things happen at different speeds. I had to make sure the app "waits" for the database to finish checking the password before moving on to the next step.
+
+### Lessons Learned
+
+- **Don't Trust User Input:** I learned that even if the frontend checks if passwords match, the backend (my code) must check again. This is called "Server-side validation," and it's the last line of defense.
+- **Hashing is Automatic:** I realized that because of my Mongoose "pre-save" hooks, I don't need to manually scramble (hash) the password in this function. I just set `user.password = newPassword` and the database model handles the heavy lifting.
+
+---
