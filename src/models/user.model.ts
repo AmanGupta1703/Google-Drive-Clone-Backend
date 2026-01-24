@@ -75,7 +75,6 @@ userSchema.pre('save', async function (this: HydratedDocument<IUser>) {
 })
 
 userSchema.methods.isPasswordCorrect = async function (password: string) {
-  console.log(this)
   return await bcrypt.compare(password, this.password)
 }
 
