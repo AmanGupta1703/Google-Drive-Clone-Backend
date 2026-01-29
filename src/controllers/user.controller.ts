@@ -227,4 +227,47 @@ const changePassword = asyncHandler(
   }
 )
 
-export { createUser, login, logout, refreshAccessToken, changePassword }
+const updateAccountDetails = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { email, fullName } = req.body
+
+    if (!email && !fullName) {
+      throw new ApiError(
+        HttpStatus.BAD_REQUEST,
+        'At least one field (email or fullName) is required to update'
+      )
+    }
+
+    const updateData: Partial<Pick<IUser, 'email' | 'fullName'>> = {}
+
+    if (fullName) updateData.fullName = fullName
+    if (email) updateData.email = email
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req?.user?._id,
+      {
+        $set: updateData,
+      },
+      {
+        new: true,
+      }
+    ).select('-password -refreshToken')
+
+    if (!updatedUser) {
+      return new ApiError(HttpStatus.NOT_FOUND, 'User does not exists')
+    }
+
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, updatedUser, 'User updated'))
+  }
+)
+
+export {
+  createUser,
+  login,
+  logout,
+  refreshAccessToken,
+  changePassword,
+  updateAccountDetails,
+}
