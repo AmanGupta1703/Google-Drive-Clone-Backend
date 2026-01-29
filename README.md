@@ -369,12 +369,12 @@ backend/
 
 ## 🚀 Day 9
 
-| Task                          | Status |
-| ----------------------------- | ------ |
-| Change Password Feature       | ✅     |
-| Current Password Check        | ✅     |
-| Password Matching Logic       | ✅     |
-| Secure Database Saving        | ✅     |
+| Task                    | Status |
+| ----------------------- | ------ |
+| Change Password Feature | ✅     |
+| Current Password Check  | ✅     |
+| Password Matching Logic | ✅     |
+| Secure Database Saving  | ✅     |
 
 ## Commit: 773ff34
 
@@ -392,5 +392,33 @@ backend/
 
 - **Don't Trust User Input:** I learned that even if the frontend checks if passwords match, the backend (my code) must check again. This is called "Server-side validation," and it's the last line of defense.
 - **Hashing is Automatic:** I realized that because of my Mongoose "pre-save" hooks, I don't need to manually scramble (hash) the password in this function. I just set `user.password = newPassword` and the database model handles the heavy lifting.
+
+---
+
+## 🚀 Day 10
+
+| Task                    | Status |
+| ----------------------- | ------ |
+| Profile Update Feature  | ✅     |
+| Partial Data Handling   | ✅     |
+| Email & Name Validation | ✅     |
+| MongoDB Atomic Updates  | ✅     |
+
+## Commit: 90d2f21
+
+### What I Did
+
+- **The Dynamic Updater:** I implemented a controller that allows users to update their profile information. I designed it to be flexible, using a `Partial` type so users can update just their email, just their name, or both at the same time without overwriting existing data with null values.
+- **The Sensitive Data Shield:** When returning the updated user information, I used the `.select('-password -refreshToken')` method to ensure that sensitive credentials never leave the server, keeping user data secure even in successful responses.
+
+### Difficulties Faced
+
+- **The "Empty Request" Trap:** I had to implement logic to catch cases where a user sends an update request but provides no new information. Without the `if (!email && !fullName)` check, the database would perform an unnecessary operation.
+- **Selective Updating:** Using `$set` in Mongoose was a specific choice to ensure we only target the fields provided in the `updateData` object, preventing accidental data loss on other user fields.
+
+### Lessons Learned
+
+- **Atomic Operation Efficiency:** I learned the value of using `findByIdAndUpdate` with the `$set` operator for simple field updates. It’s more performant than fetching the whole document, modifying it in memory, and saving it back, especially when I don't need to trigger complex middleware.
+- **Lean Responses:** I realized that after an update, it's best practice to return the _new_ version of the document (using `{ new: true }`) so the frontend can immediately reflect the changes without needing a secondary "fetch profile" call.
 
 ---
