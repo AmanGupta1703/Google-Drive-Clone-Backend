@@ -422,3 +422,30 @@ backend/
 - **Lean Responses:** I realized that after an update, it's best practice to return the _new_ version of the document (using `{ new: true }`) so the frontend can immediately reflect the changes without needing a secondary "fetch profile" call.
 
 ---
+
+## 🚀 Day 11: Setting Up the Folder System
+
+| Task                   | Status |
+| ---------------------- | ------ |
+| Created Folder Model   | ✅     |
+| Enabled Folder Nesting | ✅     |
+| Improved Search Speed  | ✅     |
+| Added Trash Bin Logic  | ✅     |
+
+## Commit: 0da3df6
+
+### What I Did
+
+- **The Folder Foundation:** I built the `Folder` model so users can organize their files. I designed it to be "self-referencing," which means a folder can live inside another folder, just like on a real desktop.
+- **TypeScript Interface:** I created a clear set of rules (an interface) for what a folder should look like. This helps the **Development Environment** catch errors early by ensuring every folder has a name and an owner.
+- **Speed Optimization:** I added an "Index" to the database. Think of this like a table of contents; it helps the **Database** find a user's folders instantly without having to search through every single record in the system.
+
+### Difficulties Faced
+
+- **Managing the "Root":** I had to decide how the **Application** should recognize folders that aren't inside anything else. I set the "parent" to `null` to represent the main Home screen.
+- **Owner Tracking:** I had to ensure that every folder is strictly linked to a specific user so that people can only see their own private data.
+
+### Lessons Learned
+
+- **Smart Organization:** I learned that by tagging every folder with an `owner` ID, the **System** stays secure and organized.
+- **The "Soft Delete" Concept:** Instead of deleting data permanently, I used an `isArchived` flag. This allows the **Application** to move items to a "Trash" folder instead of erasing them forever, giving users a chance to restore their work.
