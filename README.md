@@ -449,3 +449,32 @@ backend/
 
 - **Smart Organization:** I learned that by tagging every folder with an `owner` ID, the **System** stays secure and organized.
 - **The "Soft Delete" Concept:** Instead of deleting data permanently, I used an `isArchived` flag. This allows the **Application** to move items to a "Trash" folder instead of erasing them forever, giving users a chance to restore their work.
+
+---
+
+## 🚀 Day 12: File Metadata & Storage Design
+
+| Task                       | Status |
+| -------------------------- | ------ |
+| Defined IFile Interface    | ✅     |
+| Implemented File Schema    | ✅     |
+| Integrated Cloudinary Keys | ✅     |
+| Setup File-Folder Linking  | ✅     |
+
+## Commit: 455c1c8
+
+### What I Did
+
+- **The File Metadata Blueprint:** I created the `IFile` interface and `File` schema. This allows the **application** to store crucial information like the filename, the user who owns it, and the specific folder it belongs to.
+- **External Storage Integration:** I included `fileUrl` and `publicId` fields. This ensures that the **system** can point to the physical file on Cloudinary and use the unique ID to perform deletions or updates later.
+- **Accurate Size Tracking:** I set up the `size` field to store data in bytes. This is vital for the **application** to correctly calculate how much storage a user has left before hitting their limit.
+
+### Difficulties Faced
+
+- **Timestamp Recognition:** I realized that while the **database** automatically creates `createdAt` and `updatedAt` fields, the **application** wouldn't recognize them in the code unless they were explicitly added to the TypeScript interface.
+- **Flexible File Placement:** I had to design a way for files to exist either inside a folder or on the main dashboard. By allowing the `folder` field to be `null`, the **system** can successfully handle files that aren't organized into sub-directories.
+
+### Lessons Learned
+
+- **MIME Type Importance:** I learned that storing the `mimeType` is essential for the **application** to know what kind of file it is handling (like an image vs. a PDF) without having to download the file first.
+- **Reference Logic:** I practiced linking the File model to both the User and Folder models. This creates a clean "map" in the **database** that makes it easy to fetch all files belonging to a specific user or a specific directory.
