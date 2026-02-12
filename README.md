@@ -19,26 +19,32 @@ backend/
 │   │
 │   ├── controllers/
 │   │   └── user.controller.ts
-│   │
+│   │
 │   ├── db/
 │   │   └── index.ts
-│   │
+│   │
 │   ├── middlewares/
-│   │
+│   │   └── auth.middleware.ts
+│   │
 │   ├── models/
 │   │   ├── interfaces/
+│   │   │   ├── IFile.ts
+│   │   │   ├── IFolder.ts
 │   │   │   └── IUser.ts
+│   │   │
+│   │   ├── file.model.ts
+│   │   ├── folder.model.ts
 │   │   └── user.model.ts
-│   │
+│   │
 │   ├── routes/
 │   │   └── user.route.ts
-│   │
+│   │
 │   ├── utils/
 │   │   ├── ApiError.ts
 │   │   ├── ApiResponse.ts
 │   │   ├── asyncHandler.ts
 │   │   └── HttpStatus.ts
-│   │
+│   │
 │   ├── app.ts
 │   ├── constants.ts
 │   └── index.ts
