@@ -484,3 +484,42 @@ backend/
 
 - **MIME Type Importance:** I learned that storing the `mimeType` is essential for the **application** to know what kind of file it is handling (like an image vs. a PDF) without having to download the file first.
 - **Reference Logic:** I practiced linking the File model to both the User and Folder models. This creates a clean "map" in the **database** that makes it easy to fetch all files belonging to a specific user or a specific directory.
+
+---
+
+## 🚀 Day 13: File Upload Setup (Multer & Cloudinary)
+
+| Task                              | Status |
+| --------------------------------- | ------ |
+| Configured Multer Disk Storage    | ✅     |
+| Implemented Cloudinary Utility    | ✅     |
+| Added Stream-based Upload Logic   | ✅     |
+| Integrated Automatic File Cleanup | ✅     |
+
+## Commit: 4ad3708
+
+### What I Did
+
+- **Multer Integration**: Created a middleware to handle `multipart/form-data`. The **application** now has a designated spot on the server (`public/temp`) to catch files before they are processed.
+- **Cloudinary Stream Utility**: Instead of loading whole files into the server's memory (RAM), I implemented a **streaming** approach. The **system** now "pipes" data directly from the local disk to Cloudinary, which is much more efficient for a drive-clone project.
+- **File Cleanup**: Added logic to ensure that once a file is successfully uploaded (or if the upload fails), the temporary file is deleted from the server to prevent storage leaks.
+
+### How it Works (Technical Flow)
+
+1.  **Request**: The user sends a file via a `POST` request.
+2.  **Multer**: Intercepts the request and saves the file to `./public/temp` with a unique timestamped name.
+3.  **Cloudinary Utility**:
+    - Opens a `ReadStream` from the local path.
+    - Uses `.pipe()` to send the data chunks to Cloudinary.
+    - Waits for the cloud provider to return a secure URL and public ID.
+4.  **Cleanup**: The `fs.unlinkSync` command removes the file from our server's local storage.
+
+### Difficulties Faced
+
+- **Understanding Streams**: It was a bit challenging to understand how `pipe()` works, but I realized it acts like a plumbing system—moving data from point A to point B without filling up a "bucket" (RAM) in between.
+- **Async Promises**: Since Cloudinary's `upload_stream` uses callbacks, I had to wrap it in a `New Promise` to make it work smoothly with `async/await` in the rest of the **backend**.
+
+### Lessons Learned
+
+- **Memory Management**: Streaming is essential for a cloud storage app to keep it from crashing when handling large files.
+- **Naming Collisions**: Using a `uniqueSuffix` in Multer is a vital safety step to ensure one user's file doesn't overwrite another's during the upload process.
