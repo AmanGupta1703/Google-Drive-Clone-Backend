@@ -523,3 +523,38 @@ backend/
 
 - **Memory Management**: Streaming is essential for a cloud storage app to keep it from crashing when handling large files.
 - **Naming Collisions**: Using a `uniqueSuffix` in Multer is a vital safety step to ensure one user's file doesn't overwrite another's during the upload process.
+
+---
+
+## 📁 Day 14: Folder Creation & Security
+
+| Task                                | Status |
+| ----------------------------------- | ------ |
+| Created `createFolder` Controller   | ✅     |
+| Added Ownership & Parent Validation | ✅     |
+| Integrated Routes into App          | ✅     |
+
+## Commit: 498bf50
+
+### What I Did
+
+- **Folder Hierarchy**: Built a system that supports nested folders. By using a `parentId`, the **application** can now distinguish between "Root" folders and "Subfolders."
+- **Security Validation**: Implemented an ownership check. The **system** now verifies that if you are creating a folder inside another one, you actually own the parent folder. This prevents unauthorized users from modifying others' file structures.
+- **Type-Safe Handling**: Refined the controller to use TypeScript narrowing. By checking for the `user` object early, I removed the need for complex casting, making the code cleaner and more readable.
+
+### How it Works (Technical Flow)
+
+1. **Auth Check**: The request passes through JWT middleware to ensure a user is logged in.
+2. **Parent Validation**: If a `parentId` is provided in the request body, the **backend** performs a `findOne` query looking for that specific `_id` AND the current user's ID as the `owner`.
+3. **Creation**: A new entry is made in the Database. If no `parentId` was provided, the `parent` field is set to `null` (making it a top-level folder).
+4. **Response**: The newly created folder object is sent back via a standardized `ApiResponse`.
+
+### Difficulties Faced
+
+- **Query Logic**: Ensuring the database searched for the parent folder by its `_id` rather than searching for sibling folders. It was a crucial distinction to ensure the hierarchy remained intact.
+- **TypeScript Null Checks**: Managing "possibly null" errors for `req.user`. I learned that performing a simple `if (!user)` check allows TypeScript to "narrow" the type, making `user._id` safe to use without extra assertions.
+
+### Lessons Learned
+
+- **Backend Sovereignty**: Never trust the `parentId` sent by the client at face value. Always verify ownership on the server side to prevent "Insecure Direct Object Reference" (IDOR) vulnerabilities.
+- **Code Readability**: Moving `req.user` into a local constant after validation makes the subsequent logic much cleaner and easier for other developers to follow.
