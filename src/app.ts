@@ -34,7 +34,9 @@ app.use(express.static('public'))
 app.use(cookieParser())
 
 import userRouter from './routes/user.route.js'
+import folderRouter from './routes/folder.route.js'
 
 app.use('/api/v1/users', userRouter)
+app.use('/api/v1/folders', folderRouter)
 
 export { app }
