@@ -1,6 +1,7 @@
 import type { Response } from 'express'
 
 import { Folder } from '../models/folder.model.js'
+import { File } from '../models/file.model.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js'
 import { ApiError } from '../utils/ApiError.js'
@@ -56,4 +57,39 @@ const createFolder = asyncHandler(
   }
 )
 
-export { createFolder }
+const getFolderContent = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { folderId } = req.params
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'You need to be logged in to create a folder.'
+      )
+    }
+
+    if (folderId) {
+      const folder = await Folder.findOne({ _id: folderId, owner: user._id })
+      if (!folder) {
+        throw new ApiError(HttpStatus.NOT_FOUND, 'Folder not found.')
+      }
+    }
+    const [folders, files] = await Promise.all([
+      Folder.find({ parent: folderId || null, owner: user._id }),
+      File.find({ folder: folderId || null, owner: user._id }),
+    ])
+
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          { folders, files },
+          'Content fetched successfully.'
+        )
+      )
+  }
+)
+
+export { createFolder, getFolderContent }
