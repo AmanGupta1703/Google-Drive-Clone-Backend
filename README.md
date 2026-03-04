@@ -558,3 +558,41 @@ backend/
 
 - **Backend Sovereignty**: Never trust the `parentId` sent by the client at face value. Always verify ownership on the server side to prevent "Insecure Direct Object Reference" (IDOR) vulnerabilities.
 - **Code Readability**: Moving `req.user` into a local constant after validation makes the subsequent logic much cleaner and easier for other developers to follow.
+
+---
+
+## 📁 Day 15: Content Retrieval (Nested Navigation)
+
+| Task                             | Status |
+| -------------------------------- | ------ |
+| Implemented `getFolderContent`   | ✅     |
+| Added Parallel Querying Logic    | ✅     |
+| Handled Root vs. Subfolder Views | ✅     |
+| Integrated File & Folder Results | ✅     |
+
+## Commit: 2b208b1
+
+### What I Did
+
+- **Universal Retrieval**: Created a single controller that handles both the "Home" (Root) view and specific folder views by making the `folderId` optional in the route.
+- **Performance Optimization**: Implemented `Promise.all` to fetch both Subfolders and Files simultaneously. The **system** no longer waits for the folder query to finish before starting the file query, making the API twice as fast.
+- **Security Guard**: Added a check to ensure that if a user requests a specific folder, the **application** verifies they actually own that folder before showing its contents.
+
+### How it Works (Technical Flow)
+
+1. **Param Extraction**: The controller looks for a `folderId` in the URL. If it's missing, it defaults to `null` to show the "Root" directory.
+2. **Ownership Check**: If an ID is provided, the **backend** performs a security check to verify the user owns that directory.
+3. **Parallel Fetching**: The **system** triggers two database searches at once:
+   - `Folder.find({ parent: folderId || null })`
+   - `File.find({ folder: folderId || null })`
+4. **Unified Response**: Both results (folders and files) are packaged into a single JSON response so the frontend can render the entire "Drive" view in one go.
+
+### Difficulties Faced
+
+- **Naming Consistency**: I had to be very careful with my schema fields—remembering that Folders use `parent` while Files use `folder`. Mapping these correctly in the query was essential for the data to show up.
+- **Concurrency**: Learning how to handle multiple `await` calls efficiently. Using `Promise.all` was a great lesson in making the **backend** feel snappier and more professional.
+
+### Lessons Learned
+
+- **Parallelism**: Whenever two database queries don't depend on each other, always run them in parallel to save time and resources.
+- **Clean Routing**: Using optional parameters (`/:folderId?`) makes the API much more flexible than creating separate "Home" and "Folder" endpoints.
