@@ -596,3 +596,40 @@ backend/
 
 - **Parallelism**: Whenever two database queries don't depend on each other, always run them in parallel to save time and resources.
 - **Clean Routing**: Using optional parameters (`/:folderId?`) makes the API much more flexible than creating separate "Home" and "Folder" endpoints.
+
+### 📦 Day 16: Storage Management System
+
+| Task                              | Status |
+| --------------------------------- | ------ |
+| Created Storage Schema            | ✅     |
+| Defined Byte-based Capacity Logic | ✅     |
+| Linked Storage to User Ownership  | ✅     |
+
+---
+
+## Commit: e1cb6d5
+
+### What I Did
+
+- **Usage Tracking**: Created a dedicated **Storage** model to act as a "ledger" for the drive. This keeps track of exactly how much space each user is consuming.
+- **Capacity Definition**: Set a default limit of **500MB**. In the code, this is represented as **524,288,000 bytes** (500 × 1024 × 1024) to ensure the system is mathematically precise.
+- **User Association**: Linked the storage record directly to the `User` model using an `owner` reference. This ensures that every user has their own private quota that others cannot access.
+
+### How it Works (Technical Flow)
+
+1. **The Power of Bytes**: While humans prefer seeing "MB," computers calculate size in bytes. By using 1024 as our multiplier (binary system), we ensure our backend math matches exactly how the operating system and **Multer** calculate file sizes.
+2. **The "Bank Account" Logic**: Think of the `Storage` model as a bank account.
+   - `totalCapacity` is the credit limit.
+   - `usedStorage` is the current balance.
+   - Every upload is a "withdrawal" from the available space.
+3. **Automated Timestamps**: Using `{ timestamps: true }` allows the system to automatically track when the storage was last modified, which is useful for debugging and audit logs.
+
+### Difficulties Faced
+
+- **Byte Precision**: Deciding between 1000 and 1024 for the MB calculation was tricky. I chose 1024 because it is the standard for memory and storage in software development, preventing "rounding errors" where a file might appear smaller in the UI than it actually is on the disk.
+- **Choosing the Model Structure**: I chose to create a separate `Storage` model rather than putting a `usedStorage` field inside the `User` model. This keeps the code **modular**—meaning the code that handles "who you are" (User) is separate from the code that handles "what you own" (Storage).
+
+### Lessons Learned
+
+- **Scalability**: This setup makes it very easy to offer different "tiers" later on. To give a user more space, we only need to update a single number in their `Storage` document.
+- **Layered Security**: I learned that a safe app has multiple "gates." **Multer** acts as the front gate (rejecting a single file that is too big), and the **Storage Model** acts as the vault (ensuring the total collection of files doesn't exceed the account limit).
