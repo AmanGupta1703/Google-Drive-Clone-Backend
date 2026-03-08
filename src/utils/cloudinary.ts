@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 
-import { v2 as cloudinary } from 'cloudinary'
+import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary'
 
 import config from '../config/index.js'
 
@@ -14,7 +14,9 @@ cloudinary.config({
  * Uploads a file to Cloudinary using a stream.
  * @param localFilePath - The path to the file saved by Multer in public/temp
  */
-const uploadOnCloudinary = async (localFilePath: string) => {
+const uploadOnCloudinary = async (
+  localFilePath: string
+): Promise<UploadApiResponse | null> => {
   try {
     if (!localFilePath) return null
 
