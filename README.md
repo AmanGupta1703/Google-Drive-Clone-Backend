@@ -597,6 +597,8 @@ backend/
 - **Parallelism**: Whenever two database queries don't depend on each other, always run them in parallel to save time and resources.
 - **Clean Routing**: Using optional parameters (`/:folderId?`) makes the API much more flexible than creating separate "Home" and "Folder" endpoints.
 
+---
+
 ### 📦 Day 16: Storage Management System
 
 | Task                              | Status |
@@ -604,8 +606,6 @@ backend/
 | Created Storage Schema            | ✅     |
 | Defined Byte-based Capacity Logic | ✅     |
 | Linked Storage to User Ownership  | ✅     |
-
----
 
 ## Commit: e1cb6d5
 
@@ -633,3 +633,47 @@ backend/
 
 - **Scalability**: This setup makes it very easy to offer different "tiers" later on. To give a user more space, we only need to update a single number in their `Storage` document.
 - **Layered Security**: I learned that a safe app has multiple "gates." **Multer** acts as the front gate (rejecting a single file that is too big), and the **Storage Model** acts as the vault (ensuring the total collection of files doesn't exceed the account limit).
+
+---
+
+### 📦 Day 17: Secure File Upload & Storage Validation
+
+| Task                              | Status |
+| --------------------------------- | ------ |
+| Implemented uploadFile Controller | ✅     |
+| Integrated Storage Quota Check    | ✅     |
+| Added Lazy Storage Initialization | ✅     |
+| Cloudinary Upload Integration     | ✅     |
+| Handled Local File Cleanup        | ✅     |
+| Atomic Usage Updates ($inc)       | ✅     |
+
+## Commit: a12d0db
+
+### What I Did
+
+- **Smart Storage Initialization**: Used Mongoose's `findOneAndUpdate` with `upsert: true`. This ensures that if a user doesn't have a Storage record yet, one is created automatically the moment they try to upload their first file.
+- **Pre-Upload Validation**: Implemented a "Gatekeeper" logic that checks the user's current `usedStorage` against their `totalCapacity` before sending the file to Cloudinary.
+- **Automated Cleanup**: Added `fs.unlinkSync` to ensure that if a user is over their 500MB limit, the temporary file is deleted from the server immediately to prevent disk bloat.
+- **Atomic Math with $inc**: Switched to the `$inc` operator for updating storage usage. This ensures that even if multiple files are uploaded at once, the math stays 100% accurate inside the database.
+
+### How it Works (Technical Flow)
+
+1. **Authentication**: The system verifies the user is logged in via the `auth` middleware.
+2. **Storage Lookup**: It looks for the user's Storage document. If missing, it creates one with the default 500MB limit.
+3. **The Quota Math**:
+   - `current_used + incoming_file_size <= 500MB`
+   - If this fails, the request is rejected, and the local temp file is deleted.
+4. **Cloudinary Handshake**: The local file is sent to Cloudinary.
+5. **Atomic Update**: Once Cloudinary confirms the upload, the system uses the `$inc` operator to add the file's byte size to the user's total usage.
+
+### Difficulties Faced
+
+- **The "Null" String Trap**: In multipart/form-data, `req.body.folderId` often arrives as the string `"null"`. I implemented a check to handle this so files land in the root directory correctly.
+- **Zombie Files**: I realized that throwing an error during the storage check would leave files stranded on the server. I integrated `fs.unlinkSync` to ensure the server stays clean even when uploads are rejected.
+- **Race Conditions**: I learned that adding numbers in JavaScript can lead to errors if two uploads happen at the exact same time. Using `$inc` solves this by letting MongoDB handle the math.
+
+### Lessons Learned
+
+- **Defense in Depth**: We now have two layers of protection. **Multer** limits the size of a single file, while the **Controller** limits the total account size.
+- **Atomic Operations**: Using `$inc` is the professional way to handle counters and balances in a database to prevent data corruption.
+- **Order of Operations**: Checking the limit _before_ uploading to Cloudinary saves bandwidth and prevents unnecessary cloud storage costs.
