@@ -677,3 +677,30 @@ backend/
 - **Defense in Depth**: We now have two layers of protection. **Multer** limits the size of a single file, while the **Controller** limits the total account size.
 - **Atomic Operations**: Using `$inc` is the professional way to handle counters and balances in a database to prevent data corruption.
 - **Order of Operations**: Checking the limit _before_ uploading to Cloudinary saves bandwidth and prevents unnecessary cloud storage costs.
+
+---
+
+### 📦 Day 18: Duplicate File Prevention & Logic Refinement
+
+| Fix                      | Description                                      |
+| ------------------------ | ------------------------------------------------ |
+| **Duplicate Name Check** | Prevents uploading two files with the same name. |
+| **Temp File Cleanup**    | Deletes the local file if a duplicate is found.  |
+| **Type Support**         | Works for both root directory and subfolders.    |
+
+## Commit: f604d6d
+
+### The Bug
+
+The system allowed users to upload files with identical names in the same folder, creating data collisions. Additionally, the TypeScript compiler was throwing an error because the file name from the request could technically be `undefined`.
+
+### The Fix
+
+- **Collision Check**: Implemented a `File.findOne` query to ensure the file name is unique within the user's specific folder (or root).
+- **TypeScript Fix**: Resolved the "No overload matches this call" error by properly handling the `req.file?.originalname` type. By ensuring the name is treated as a string, the Mongoose query now compiles correctly.
+- **Immediate Cleanup**: Added `fs.unlinkSync` to delete the temporary file the moment a naming conflict is detected. This prevents rejected files from wasting server disk space.
+
+### Lessons Learned
+
+- **Type Strictness**: TypeScript's "No overload" errors are often a warning that a value might be `undefined`. Explicitly handling those cases makes the code much safer.
+- **Resource Management**: In file uploads, unlinking the local file on _every_ error path is essential for long-term server stability.
