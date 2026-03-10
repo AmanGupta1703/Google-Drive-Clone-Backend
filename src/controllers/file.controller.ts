@@ -48,6 +48,20 @@ const uploadFile = asyncHandler(
       }
     }
 
+    const existingFile = await File.findOne({
+      name: req.file?.originalname as string,
+      owner: user._id,
+      folder: folderId,
+    })
+
+    if (existingFile) {
+      fs.unlinkSync(req.file?.path as string)
+      throw new ApiError(
+        HttpStatus.CONFLICT, // 409 Conflict is the standard for duplicates
+        'A file with this name already exists in this folder.'
+      )
+    }
+
     const storage = await Storage.findOneAndUpdate(
       { owner: user._id },
       { owner: user._id },
