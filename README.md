@@ -704,3 +704,35 @@ The system allowed users to upload files with identical names in the same folder
 
 - **Type Strictness**: TypeScript's "No overload" errors are often a warning that a value might be `undefined`. Explicitly handling those cases makes the code much safer.
 - **Resource Management**: In file uploads, unlinking the local file on _every_ error path is essential for long-term server stability.
+
+---
+
+### 📦 Day 18 (Part 2): Directory Navigation & Content Retrieval
+
+| Feature          | Logic                                                     |
+| ---------------- | --------------------------------------------------------- |
+| **Endpoint**     | `GET /content?folderId=...`                               |
+| **Security**     | Ownership validation for every directory access.          |
+| **Optimization** | Parallel fetching of files and folders via `Promise.all`. |
+
+## Commit: 418b187
+
+### What I Did
+
+- **Unified Navigation**: Created a single controller that returns both subfolders and files for any given location (Root or Subfolder).
+- **Access Control**: Implemented a "Gatekeeper" check. If a `folderId` is provided, the system first verifies that the folder exists and belongs to that specific user.
+- **Root Directory Support**: Designed the query to handle `null` folder IDs, allowing the same route to serve the main "Home" view and deeply nested subfolders.
+- **Parallel Execution**: Used `Promise.all` to fetch files and folders simultaneously, reducing API latency.
+
+### Technical Flow
+
+1. **Extract**: Get the `folderId` from the URL query string.
+2. **Authorize**: If an ID is provided, verify ownership in the `Folder` collection.
+3. **Fetch**: Use the `owner` ID and `folderId` to pull matching records from both `File` and `Folder` collections.
+4. **Respond**: Deliver a structured JSON object containing two arrays: `files` and `folders`.
+
+### Lessons Learned
+
+- **Query Params**: Using query strings (`?folderId=`) makes the API flexible for optional filters.
+- **Node.js Parallelism**: `Promise.all` is essential when talking to multiple collections to avoid "Request Waterfall" delays.
+- **Null Safety**: Explicitly passing `null` when a `folderId` is missing ensures we correctly target the Root directory in the database.
