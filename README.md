@@ -736,3 +736,46 @@ The system allowed users to upload files with identical names in the same folder
 - **Query Params**: Using query strings (`?folderId=`) makes the API flexible for optional filters.
 - **Node.js Parallelism**: `Promise.all` is essential when talking to multiple collections to avoid "Request Waterfall" delays.
 - **Null Safety**: Explicitly passing `null` when a `folderId` is missing ensures we correctly target the Root directory in the database.
+
+---
+
+### 📦 Day 18: The "Double Vision" Refactor
+
+| Update             | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| **Bug Fix**        | Resolved naming collisions in file uploads.        |
+| **Architecture**   | Consolidated logic into `directory.controller.ts`. |
+| **Lesson Learned** | Identified and fixed a major DRY violation.        |
+
+---
+
+## Commit: 6d1d63d
+
+### 🛠 The Mistake: "Double Controller" Syndrome
+
+While building out the navigation features, I fell into a common trap: I wrote the exact same logic twice.
+
+- I created `getFolderContent` in `folder.ts`.
+- I created `getFiles` in `file.ts`.
+- Both were doing the same heavy lifting: fetching subfolders and files based on a `folderId`.
+
+Instead of having a clean codebase, I had created a maintenance nightmare where any change to the navigation logic would have to be manually synced across two files.
+
+### 🚀 The Fix: Consolidating into `directory.controller.ts`
+
+I stopped, took a step back, and refactored the architecture to follow the **DRY (Don't Repeat Yourself)** principle:
+
+- **Centralized Logic**: I deleted the redundant functions from both the file and folder controllers.
+- **Domain-Driven Design**: I introduced `directory.controller.ts`. This now serves as the single source of truth for "browsing" the drive.
+- **Improved Performance**: Kept the `Promise.all` optimization to fetch data in parallel, but now it lives in one clean, validated function.
+
+### 🐛 Also Fixed: Upload Naming Collision
+
+Before the refactor, I also squashed a bug in the upload flow:
+
+- **Collision Detection**: Added a check to prevent files with the same name from existing in the same folder.
+- **Memory Safety**: Implemented `fs.unlinkSync` to wipe temporary files immediately if an upload fails due to a name conflict.
+
+### 💡 Key Takeaway
+
+Just because you are working with two different database models (Files and Folders) doesn't mean you need two different controllers for a shared feature (Browsing). Grouping by **feature domain** is much cleaner than grouping by **database table**.
