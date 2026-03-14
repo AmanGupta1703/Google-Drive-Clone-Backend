@@ -779,3 +779,27 @@ Before the refactor, I also squashed a bug in the upload flow:
 ### 💡 Key Takeaway
 
 Just because you are working with two different database models (Files and Folders) doesn't mean you need two different controllers for a shared feature (Browsing). Grouping by **feature domain** is much cleaner than grouping by **database table**.
+
+---
+
+### 📦 Day 19: File Management & Scoped Validation
+
+| Update             | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| **New Controller** | `renameFile` via `PATCH` method.                     |
+| **Logic Fix**      | Names are now unique per folder, not per drive.      |
+| **Optimization**   | Handled "self-collision" when renaming to same name. |
+
+## Commit: 5427b65
+
+### What I Did
+
+- **Partial Updates**: Implemented the `renameFile` controller using the `PATCH` method, allowing users to modify file metadata without re-uploading.
+- **Context-Aware Validation**: Initially, the system checked for name uniqueness across the entire database. I refactored this to check only within the specific `folder` context. Users can now have files with the same name if they are in different directories.
+- **Identity Protection**: Added an `_id: { $ne: fileId }` check. This prevents the API from throwing a "Name already exists" error if a user saves a file without actually changing its name.
+- **State Syncing**: The controller now returns the fully updated file object, allowing the frontend to update the UI instantly without a page refresh.
+
+### Lessons Learned
+
+- **Scoped Uniqueness**: In a drive system, "uniqueness" is almost always relative to the parent container. Global uniqueness is rarely what the user wants.
+- **Efficient Updates**: By fetching the document first to check its folder context, I can simply modify the properties and use `.save()`, which is often more readable than complex `findOneAndUpdate` filters.
