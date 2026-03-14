@@ -11,6 +11,7 @@ import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js'
 import { uploadOnCloudinary } from '../utils/cloudinary.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
+import { Types } from 'mongoose'
 
 const uploadFile = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -136,4 +137,63 @@ const uploadFile = asyncHandler(
   }
 )
 
-export { uploadFile }
+const renameFile = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'You need to be logged in to upload a file.'
+      )
+    }
+
+    const { fileId } = req.params
+    const { newName } = req.body
+
+    if (!newName) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, 'New name is required.')
+    }
+
+    const fileToRename = await File.findOne({
+      _id: fileId as string,
+      owner: user._id,
+    })
+
+    console.log(fileToRename)
+
+    if (!fileToRename) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'File does not exist.')
+    }
+
+    const duplicateName = await File.findOne({
+      owner: user._id,
+      folder: fileToRename.folder,
+      name: newName.trim(),
+      _id: { $ne: fileToRename._id },
+    })
+
+    if (duplicateName) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        'A file with this name already exists in this folder.'
+      )
+    }
+
+    fileToRename.name = newName.trim()
+
+    const updatedFile = await fileToRename.save()
+
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          updatedFile,
+          'File name updated successfully.'
+        )
+      )
+  }
+)
+
+export { uploadFile, renameFile }
