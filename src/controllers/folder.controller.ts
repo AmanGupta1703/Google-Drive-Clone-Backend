@@ -75,4 +75,60 @@ const createFolder = asyncHandler(
   }
 )
 
-export { createFolder }
+const renameFolder = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'You need to be logged in to create a folder.'
+      )
+    }
+
+    const { newFolderName } = req.body
+    const { folderId } = req.params
+
+    if (!newFolderName) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, 'New name is required.')
+    }
+
+    const existingFolder = await Folder.findOne({
+      _id: folderId as string,
+      owner: user._id,
+    })
+
+    if (!existingFolder) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'Folder does not exist.')
+    }
+
+    const duplicateFoldername = await Folder.findOne({
+      _id: folderId as string,
+      owner: user._id,
+      parent: existingFolder.parent,
+      name: newFolderName.trim(),
+    })
+
+    if (duplicateFoldername) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        'A folder with this name already exists in this folder.'
+      )
+    }
+
+    existingFolder.name = newFolderName
+
+    const updatedFolder = await existingFolder.save()
+
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          updatedFolder,
+          'Folder name updated successfully.'
+        )
+      )
+  }
+)
+export { createFolder, renameFolder }
