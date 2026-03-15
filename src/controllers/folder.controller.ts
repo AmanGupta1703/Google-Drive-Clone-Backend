@@ -86,10 +86,10 @@ const renameFolder = asyncHandler(
       )
     }
 
-    const { newFolderName } = req.body
+    const { newName } = req.body
     const { folderId } = req.params
 
-    if (!newFolderName) {
+    if (!newName) {
       throw new ApiError(HttpStatus.BAD_REQUEST, 'New name is required.')
     }
 
@@ -103,10 +103,10 @@ const renameFolder = asyncHandler(
     }
 
     const duplicateFoldername = await Folder.findOne({
-      _id: folderId as string,
+      _id: { $ne: folderId as string },
       owner: user._id,
       parent: existingFolder.parent,
-      name: newFolderName.trim(),
+      name: newName.trim(),
     })
 
     if (duplicateFoldername) {
@@ -116,7 +116,7 @@ const renameFolder = asyncHandler(
       )
     }
 
-    existingFolder.name = newFolderName
+    existingFolder.name = newName
 
     const updatedFolder = await existingFolder.save()
 

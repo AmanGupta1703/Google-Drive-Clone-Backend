@@ -803,3 +803,29 @@ Just because you are working with two different database models (Files and Folde
 
 - **Scoped Uniqueness**: In a drive system, "uniqueness" is almost always relative to the parent container. Global uniqueness is rarely what the user wants.
 - **Efficient Updates**: By fetching the document first to check its folder context, I can simply modify the properties and use `.save()`, which is often more readable than complex `findOneAndUpdate` filters.
+
+---
+
+### 📂 Day 20: Folder Management & Recursive Logic Preparation
+
+| Feature            | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| **New Controller** | `renameFolder` with `PATCH` support.              |
+| **Validation**     | Scoped uniqueness check based on the `parent` ID. |
+| **Consistency**    | Unified response structure with `renameFile`.     |
+
+---
+
+## Commit: 51412d2
+
+### What I Did
+
+- **Structural Integrity**: Built the `renameFolder` controller to allow users to update folder names without breaking the directory tree.
+- **Parent-Scoped Uniqueness**: Implemented logic to ensure that folder names are unique within their specific directory level. This uses the `parent` field to distinguish between folders in the Root vs. folders inside subdirectories.
+- **Conflict Prevention**: Added a check using the `$ne` (not equal) operator to ensure that if a user saves the folder without changing the name, the system doesn't trigger a "name already exists" error against itself.
+- **Data Persistence**: Used the `.save()` method on the Mongoose document to ensure all middleware and validations are triggered during the update.
+
+### Lessons Learned
+
+- **Context is Everything**: Just like files, folders exist within a context. By fetching the folder first to identify its `parent`, I can accurately validate the namespace before committing changes.
+- **API Uniformity**: Keeping the request body (`newName`) and the response object (the updated document) consistent across both file and folder controllers makes the frontend integration significantly smoother.
