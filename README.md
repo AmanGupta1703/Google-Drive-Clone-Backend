@@ -814,8 +814,6 @@ Just because you are working with two different database models (Files and Folde
 | **Validation**     | Scoped uniqueness check based on the `parent` ID. |
 | **Consistency**    | Unified response structure with `renameFile`.     |
 
----
-
 ## Commit: 51412d2
 
 ### What I Did
@@ -829,3 +827,29 @@ Just because you are working with two different database models (Files and Folde
 
 - **Context is Everything**: Just like files, folders exist within a context. By fetching the folder first to identify its `parent`, I can accurately validate the namespace before committing changes.
 - **API Uniformity**: Keeping the request body (`newName`) and the response object (the updated document) consistent across both file and folder controllers makes the frontend integration significantly smoother.
+
+---
+
+### 📂 Day 21: File Deletion & Storage Management
+
+| Feature            | Description                                                              |
+| :----------------- | :----------------------------------------------------------------------- |
+| **Cloud Deletion** | Robust removal of assets using dynamic URL parsing.                      |
+| **Storage Sync**   | Automatic decrement of `usedStorage` in the user's Storage model.        |
+| **Error Handling** | Graceful handling of `not_found` results to ensure DB/Cloud consistency. |
+
+---
+
+## Commit: 618610d
+
+### What I Did
+
+- **URL-Driven Deletion**: Instead of guessing the `resource_type` or `public_id`, I implemented a parser that extracts these parameters directly from the stored Cloudinary URL. This ensures that files stored in non-standard buckets (like PDFs stored as images) are correctly identified and deleted.
+- **Atomic Storage Update**: Integrated a hook to decrement the user's total storage usage by the file size (`$inc: { usedStorage: -size }`) upon successful deletion.
+- **Public ID Sanitization**: Refined the logic to strip extensions from the URL filename, providing the clean `public_id` required by the Cloudinary SDK.
+- **Double-Layer Cleanup**: The controller ensures the cloud asset is destroyed before the MongoDB record is removed, preventing "orphaned" files in the cloud.
+
+### Technical Insights
+
+- **The "Image" Bucket Discovery**: Realized that Cloudinary's streaming upload often places documents into the `/image/` path. By parsing the URL array, the system now adapts to whichever bucket Cloudinary chose during upload.
+- **Consistency over Guesswork**: Parsing the 4th index of the URL for `resource_type` and the final index for `publicId` proved more reliable than using MIME type mapping.
