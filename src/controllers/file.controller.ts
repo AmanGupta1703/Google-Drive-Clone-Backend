@@ -8,10 +8,13 @@ import { File } from '../models/file.model.js'
 import { Storage } from '../models/storage.model.js'
 import { Folder } from '../models/folder.model.js'
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js'
-import { uploadOnCloudinary } from '../utils/cloudinary.js'
+import {
+  deleteFileOnCloudinary,
+  uploadOnCloudinary,
+} from '../utils/cloudinary.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
-import { Types } from 'mongoose'
+import { getCloudinaryParamsFromUrl } from '../utils/helper.js'
 
 const uploadFile = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -196,4 +199,60 @@ const renameFile = asyncHandler(
   }
 )
 
-export { uploadFile, renameFile }
+const deleteFile = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'You need to be logged in to upload a file.'
+      )
+    }
+
+    const { fileId } = req.params
+
+    const existingFile = await File.findOne({
+      _id: fileId as string,
+      owner: user._id,
+    })
+
+    if (!existingFile) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
+    }
+
+    const { resource_type, publicId } = getCloudinaryParamsFromUrl(
+      existingFile.fileUrl
+    )
+
+    const response = await deleteFileOnCloudinary(
+      publicId as string,
+      resource_type
+    )
+
+    if (response?.result !== 'ok' && response?.result !== 'not_found') {
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Cloud deletion failed'
+      )
+    }
+
+    await Storage.findOneAndUpdate(
+      { owner: user._id },
+      { $inc: { usedStorage: -existingFile.size } },
+      { new: true }
+    )
+
+    await File.findOneAndDelete({
+      _id: fileId as string,
+      owner: user._id,
+      folder: existingFile.folder,
+    })
+
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, {}, 'File deleted successfully.'))
+  }
+)
+
+export { uploadFile, renameFile, deleteFile }

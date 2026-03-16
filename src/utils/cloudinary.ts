@@ -20,12 +20,12 @@ const uploadOnCloudinary = async (
   try {
     if (!localFilePath) return null
 
-    const response = await new Promise((resolve, reject) => {
+    const response: UploadApiResponse = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { resource_type: 'auto' },
         (error, result) => {
           if (error) reject(error)
-          else resolve(result)
+          else resolve(result as UploadApiResponse)
         }
       )
 
@@ -48,4 +48,28 @@ const uploadOnCloudinary = async (
   }
 }
 
-export { uploadOnCloudinary }
+/**
+ * Destroys a file on Cloudinary using its public_id
+ * @param {string} publicId - The unique identifier of the file on Cloudinary
+ * @returns {Promise<any | null>} - The result from Cloudinary or null if failed
+ */
+const deleteFileOnCloudinary = async (
+  publicId: string,
+  resource_type: string = 'image'
+) => {
+  try {
+    if (!publicId) return null
+
+    const response = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resource_type,
+      invalidate: true,
+    })
+
+    return response
+  } catch (error) {
+    console.error('Error deleting asset from Cloudinary:', error)
+    return null
+  }
+}
+
+export { uploadOnCloudinary, deleteFileOnCloudinary }
