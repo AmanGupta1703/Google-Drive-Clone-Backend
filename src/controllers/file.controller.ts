@@ -255,4 +255,39 @@ const deleteFile = asyncHandler(
   }
 )
 
-export { uploadFile, renameFile, deleteFile }
+const toggleStarFile = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'Access denied. Please log in to add this file to favourites.'
+      )
+    }
+
+    const { fileId } = req.params
+
+    const file = await File.findOne({ owner: user._id, _id: fileId as string })
+
+    if (!file) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
+    }
+
+    file.isStarred = !file.isStarred
+
+    await file.save({ validateBeforeSave: false })
+
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          { isStarred: file.isStarred },
+          'File star status toggled successfully.'
+        )
+      )
+  }
+)
+
+export { uploadFile, renameFile, deleteFile, toggleStarFile }
