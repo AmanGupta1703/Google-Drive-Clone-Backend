@@ -4,6 +4,7 @@ import { verifyJWT } from '../middlewares/auth.middleware.js'
 import { upload } from '../middlewares/multer.middleware.js'
 import {
   deleteFile,
+  getStarredContent,
   renameFile,
   toggleStarFile,
   uploadFile,
@@ -19,5 +20,6 @@ router.route('/content').get(getContent)
 router.route('/rename/:fileId').patch(renameFile)
 router.route('/delete/:fileId').delete(deleteFile)
 router.route('/star/:fileId').patch(toggleStarFile)
+router.route('/starred').get(getStarredContent)
 
 export default router

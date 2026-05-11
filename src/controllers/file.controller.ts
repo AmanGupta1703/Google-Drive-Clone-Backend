@@ -290,4 +290,36 @@ const toggleStarFile = asyncHandler(
   }
 )
 
-export { uploadFile, renameFile, deleteFile, toggleStarFile }
+const getStarredContent = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'Access denied. Log in to view starred files and folders.'
+      )
+    }
+
+    const [starredFiles, starredFolders] = await Promise.all([
+      File.find({ owner: user._id, isStarred: true }).lean(),
+      Folder.find({ owner: user._id, isStarred: true }).lean(),
+    ])
+
+    const totalStarred = starredFiles.length + starredFolders.length
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { files: starredFiles, folders: starredFolders, totalStarred },
+          totalStarred > 0
+            ? `${totalStarred} records marked as starred`
+            : 'No records marked as starred'
+        )
+      )
+  }
+)
+
+export { uploadFile, renameFile, deleteFile, toggleStarFile, getStarredContent }
