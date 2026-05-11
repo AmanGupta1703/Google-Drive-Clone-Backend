@@ -903,3 +903,28 @@ Just because you are working with two different database models (Files and Folde
 
 - **State Reporting**: The response includes a `totalStarred` count and a dynamic message, allowing the frontend to handle empty states ("No records marked as starred") elegantly.
 - **Separation of Concerns**: Kept the response structure split into `files` and `folders` arrays to allow the UI to maintain clear visual separation (folders usually appearing at the top).
+
+---
+
+### 📄 Day 24: File Metadata & Inspection
+
+| Feature             | Description                                                               |
+| :------------------ | :------------------------------------------------------------------------ |
+| **Deep Inspection** | Detailed retrieval of a single file's full metadata.                      |
+| **Access Control**  | Ensures only the document owner can view specific file properties.        |
+| **Optimized Read**  | Implementation of `.lean()` to provide high-speed, read-only data access. |
+
+---
+
+## Commit: 286fc9c
+
+### What I Did
+
+- **Detailed Retrieval**: Implemented the `getFileDetails` controller to serve full file information (size, type, timestamps, etc.) for the frontend "Details" sidebar.
+- **Security Check**: Enforced strict ownership validation by filtering the query with both `_id` and `owner`, preventing unauthorized metadata access via direct URL manipulation.
+- **Memory Optimization**: Utilized `.lean()` to strip the Mongoose internal methods from the response, resulting in a cleaner JSON payload and lower server memory usage.
+
+### Technical Insights
+
+- **Information Architecture**: By providing a standalone details endpoint, the main folder view can remain lightweight (only fetching names/icons), while detailed data is fetched on-demand.
+- **Lean Querying**: Since no document methods (like `.save()`) are required for this view, `.lean()` is the most performant choice for database interaction.
