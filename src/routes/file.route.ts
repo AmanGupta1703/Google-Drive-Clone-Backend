@@ -8,6 +8,7 @@ import {
   renameFile,
   toggleStarFile,
   uploadFile,
+  getFileDetails,
 } from '../controllers/file.controller.js'
 import { getContent } from '../controllers/directory.controller.js'
 
@@ -21,5 +22,6 @@ router.route('/rename/:fileId').patch(renameFile)
 router.route('/delete/:fileId').delete(deleteFile)
 router.route('/star/:fileId').patch(toggleStarFile)
 router.route('/starred').get(getStarredContent)
+router.route('/details/:fileId').get(getFileDetails)
 
 export default router

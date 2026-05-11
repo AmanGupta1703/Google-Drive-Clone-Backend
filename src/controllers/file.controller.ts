@@ -322,4 +322,39 @@ const getStarredContent = asyncHandler(
   }
 )
 
-export { uploadFile, renameFile, deleteFile, toggleStarFile, getStarredContent }
+const getFileDetails = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'Access Denied: You must be logged in with the appropriate permissions to view file details.'
+      )
+    }
+
+    const { fileId } = req.params
+
+    const file = await File.findOne({
+      _id: fileId as string,
+      owner: user._id,
+    })?.lean()
+
+    if (!file) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
+    }
+
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, file, 'File fetched successfully.'))
+  }
+)
+
+export {
+  uploadFile,
+  renameFile,
+  deleteFile,
+  toggleStarFile,
+  getStarredContent,
+  getFileDetails,
+}
