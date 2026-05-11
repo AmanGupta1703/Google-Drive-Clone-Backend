@@ -853,3 +853,28 @@ Just because you are working with two different database models (Files and Folde
 
 - **The "Image" Bucket Discovery**: Realized that Cloudinary's streaming upload often places documents into the `/image/` path. By parsing the URL array, the system now adapts to whichever bucket Cloudinary chose during upload.
 - **Consistency over Guesswork**: Parsing the 4th index of the URL for `resource_type` and the final index for `publicId` proved more reliable than using MIME type mapping.
+
+---
+
+### ⭐ Day 22: User Experience - Starred Files
+
+| Feature                   | Description                                                        |
+| :------------------------ | :----------------------------------------------------------------- |
+| **Favorites Toggle**      | Instant binary switch for marking files as "Starred".              |
+| **Ownership Enforcement** | Strict validation to ensure users only star their own assets.      |
+| **Feedback Loop**         | Dynamic response messages for better frontend toast notifications. |
+
+---
+
+## Commit: e1dde9a
+
+### What I Did
+
+- **Metadata Management**: Added the `toggleStarFile` controller to allow users to favorite/unfavorite files. This is a lightweight database operation that doesn't affect Cloudinary storage.
+- **State Persistance**: Implemented a binary toggle (`!file.isStarred`) followed by an atomic `.save()`, ensuring the UI can reflect the starred state immediately.
+- **Permission Guard**: Maintained project security standards by verifying the `owner` field against the `req.user._id` before allowing any metadata modifications.
+
+### Technical Insights
+
+- **Atomic Toggling**: Chose to modify the document and save rather than using a hard-coded update to keep the logic readable and allow for potential Mongoose pre-save hooks.
+- **Return Payload**: Optimized the API response to return the updated boolean state, allowing the frontend to update the icon state without a full page refresh.
