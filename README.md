@@ -878,3 +878,28 @@ Just because you are working with two different database models (Files and Folde
 
 - **Atomic Toggling**: Chose to modify the document and save rather than using a hard-coded update to keep the logic readable and allow for potential Mongoose pre-save hooks.
 - **Return Payload**: Optimized the API response to return the updated boolean state, allowing the frontend to update the icon state without a full page refresh.
+
+---
+
+### 📂 Day 23 Aggregated Views - Starred Content
+
+| Feature                  | Description                                                             |
+| :----------------------- | :---------------------------------------------------------------------- |
+| **Unified Retrieval**    | Single endpoint fetching both starred Files and Folders.                |
+| **Performance Sync**     | Utilizes `Promise.all` for parallel database lookups.                   |
+| **Lightweight Payloads** | Uses `.lean()` to bypass Mongoose document overhead for read-only data. |
+
+---
+
+## Commit: 6db7357
+
+### What I Did
+
+- **Dashboard Integration**: Created the `getStarredContent` controller to populate the "Starred" sidebar view. This avoids multiple frontend network requests by aggregating data on the backend.
+- **Parallel Execution**: Implemented `Promise.all` to fetch `starredFiles` and `starredFolders` concurrently, significantly reducing response latency compared to sequential `await` calls.
+- **Optimized Queries**: Applied `.lean()` to the queries, returning plain JavaScript objects instead of heavy Mongoose instances, which is ideal for high-traffic dashboard views.
+
+### Technical Insights
+
+- **State Reporting**: The response includes a `totalStarred` count and a dynamic message, allowing the frontend to handle empty states ("No records marked as starred") elegantly.
+- **Separation of Concerns**: Kept the response structure split into `files` and `folders` arrays to allow the UI to maintain clear visual separation (folders usually appearing at the top).
