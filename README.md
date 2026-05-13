@@ -977,3 +977,28 @@ Just because you are working with two different database models (Files and Folde
 ### Technical Insights
 
 - **Granular Reporting**: By returning both the absolute values (GB used) and the relative value (percentage), the frontend can implement complex UI components like donut charts or linear progress bars without additional math.
+
+---
+
+### 🔍 Day 27: Global Search & Navigation
+
+| Feature                | Description                                                        |
+| :--------------------- | :----------------------------------------------------------------- |
+| **Cross-Model Search** | Queries both File and Folder collections in parallel.              |
+| **Regex Matching**     | Case-insensitive pattern matching for flexible filename discovery. |
+| **Input Validation**   | Minimum character threshold (2+) to optimize database performance. |
+
+---
+
+## Commit: fe34416
+
+### What I Did
+
+- **Unified Search Engine**: Developed the `searchContent` controller to act as a global navigator. Instead of making users browse through nested folders, they can now find any asset from the top-level search bar.
+- **Optimized Regex**: Implemented case-insensitive search (`$options: 'i'`), ensuring that a search for "resume" finds "Resume.pdf", "RESUME.docx", and "my_resume".
+- **Performance Guards**: Added server-side validation to reject empty or single-character queries. This protects the database from expensive, broad-match operations.
+
+### Technical Insights
+
+- **Parallel Execution**: Used `Promise.all` to trigger both collection lookups simultaneously, ensuring the user gets a fast, cohesive result set.
+- **Controller Placement**: Located in `directory.controller.ts`, as this logic governs the discovery of the entire drive structure rather than just individual file/folder CRUD.
