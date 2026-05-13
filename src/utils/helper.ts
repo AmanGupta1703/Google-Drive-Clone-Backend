@@ -14,4 +14,32 @@ const getCloudinaryParamsFromUrl = (url: string) => {
   return { resource_type, publicId }
 }
 
-export { getCloudinaryParamsFromUrl }
+/**
+ * Calculates the percentage of used capacity.
+ *
+ * @param totalCapacity - Total storage capacity in bytes.
+ * @param usedCapacity - Used storage capacity in bytes.
+ * @returns The percentage of used capacity.
+ */
+function getUsedPercentage(
+  totalCapacity: number,
+  usedCapacity: number
+): number {
+  if (totalCapacity === 0) return 0
+
+  return (usedCapacity / totalCapacity) * 100
+}
+
+/**
+ * Converts bytes into a formatted GB string.
+ *
+ * @param bytes - Size in bytes.
+ * @returns Formatted string in GB (e.g. "1.25 GB").
+ */
+function bytesToGB(bytes: number): string {
+  const gb = bytes / 1024 ** 3
+
+  return `${gb.toFixed(2)} GB`
+}
+
+export { getCloudinaryParamsFromUrl, getUsedPercentage, bytesToGB }

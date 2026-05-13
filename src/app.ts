@@ -36,9 +36,11 @@ app.use(cookieParser())
 import userRouter from './routes/user.route.js'
 import folderRouter from './routes/folder.route.js'
 import fileRouter from './routes/file.route.js'
+import storageRouter from './routes/storage.route.js'
 
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/folders', folderRouter)
 app.use('/api/v1/files', fileRouter)
+app.use('/api/v1/storage', storageRouter)
 
 export { app }
