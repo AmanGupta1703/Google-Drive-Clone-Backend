@@ -928,3 +928,28 @@ Just because you are working with two different database models (Files and Folde
 
 - **Information Architecture**: By providing a standalone details endpoint, the main folder view can remain lightweight (only fetching names/icons), while detailed data is fetched on-demand.
 - **Lean Querying**: Since no document methods (like `.save()`) are required for this view, `.lean()` is the most performant choice for database interaction.
+
+---
+
+### 📂 Day 24: Folder Metadata & Child Aggregation
+
+| Feature                | Description                                                              |
+| :--------------------- | :----------------------------------------------------------------------- |
+| **Deep Metadata**      | Fetches core folder properties along with real-time child counts.        |
+| **Parallel Counting**  | Uses `Promise.all` to count nested files and sub-folders simultaneously. |
+| **Optimized Response** | Combines parent folder data with stats in a single API round-trip.       |
+
+---
+
+## Commit: 5d3e9aa
+
+### What I Did
+
+- **Enhanced Inspection**: Implemented `getFolderDetails` to provide a comprehensive look at a folder's state.
+- **Internal Stats**: Beyond fetching the folder document, I added logic to count immediate children. This allows the UI to display folder "density" (how many items are inside) before the user even enters the folder.
+- **Efficient Lookup**: Leveraged `countDocuments()` rather than fetching full arrays, which is significantly faster and uses less memory on the database server.
+
+### Technical Insights
+
+- **The Promise Pattern**: Continued the use of `Promise.all` for the counting operations to ensure that the metadata fetch doesn't bottleneck on sequential database hits.
+- **Lean Execution**: Used `.lean()` for the primary folder lookup, maintaining the project's standard for high-performance read operations.
