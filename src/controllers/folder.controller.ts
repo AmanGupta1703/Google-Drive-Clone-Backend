@@ -131,4 +131,50 @@ const renameFolder = asyncHandler(
       )
   }
 )
-export { createFolder, renameFolder }
+
+const getFolderDetails = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'You need to be logged in to view folder details.'
+      )
+    }
+
+    const { folderId } = req.params
+
+    const folder = await Folder.findOne({
+      _id: folderId as string,
+      owner: user._id,
+    }).lean()
+
+    if (!folder) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'Folder not found.')
+    }
+
+    const [totalFolders, totalFiles] = await Promise.all([
+      Folder.find({
+        owner: user._id,
+        parent: folderId as string,
+      }).countDocuments(),
+      File.find({
+        owner: user._id,
+        folder: folderId as string,
+      }).countDocuments(),
+    ])
+
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse(
+          HttpStatus.OK,
+          { folder, folders: totalFolders, files: totalFiles },
+          'Folder information retrieved successfully.'
+        )
+      )
+  }
+)
+
+export { createFolder, renameFolder, getFolderDetails }
