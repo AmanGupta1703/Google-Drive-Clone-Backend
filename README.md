@@ -931,7 +931,7 @@ Just because you are working with two different database models (Files and Folde
 
 ---
 
-### 📂 Day 24: Folder Metadata & Child Aggregation
+### 📂 Day 25: Folder Metadata & Child Aggregation
 
 | Feature                | Description                                                              |
 | :--------------------- | :----------------------------------------------------------------------- |
@@ -953,3 +953,27 @@ Just because you are working with two different database models (Files and Folde
 
 - **The Promise Pattern**: Continued the use of `Promise.all` for the counting operations to ensure that the metadata fetch doesn't bottleneck on sequential database hits.
 - **Lean Execution**: Used `.lean()` for the primary folder lookup, maintaining the project's standard for high-performance read operations.
+
+---
+
+### 📊 Day 26: Storage Quota & Monitoring
+
+| Feature                    | Description                                                 |
+| :------------------------- | :---------------------------------------------------------- |
+| **Capacity Tracking**      | Monitors `usedStorage` vs `totalCapacity` in real-time.     |
+| **Unit Conversion**        | Automatically converts raw bytes to readable GB/MB formats. |
+| **Percentage Calculation** | Provides a calculated usage ratio for progress bars.        |
+
+---
+
+## Commit: c0a1bff
+
+### What I Did
+
+- **Storage Controller**: Implemented `getStorageStats` to provide users with a clear overview of their disk usage.
+- **Data Formatting**: Utilized helper functions to transform raw byte counts into GB for frontend display, ensuring the API is "UI-ready."
+- **Empty State Handling**: Gracefully handles new accounts with zero usage, ensuring the frontend receives valid numbers for progress calculation.
+
+### Technical Insights
+
+- **Granular Reporting**: By returning both the absolute values (GB used) and the relative value (percentage), the frontend can implement complex UI components like donut charts or linear progress bars without additional math.
