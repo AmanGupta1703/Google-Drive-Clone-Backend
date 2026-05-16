@@ -1,3 +1,7 @@
+import type { IFolder } from '../models/interfaces/IFolder.js'
+import { Folder } from '../models/folder.model.js'
+import type { IUser } from '../models/interfaces/IUser.js'
+
 /**
  * Extracts Cloudinary deletion parameters from the split URL array.
  * Input: result of url.split('/')
@@ -42,4 +46,33 @@ function bytesToGB(bytes: number): string {
   return `${gb.toFixed(2)} GB`
 }
 
-export { getCloudinaryParamsFromUrl, getUsedPercentage, bytesToGB }
+/**
+ * Recursively checks if a destination folder is a child/descendant of the target folder.
+ * Returns true if a circular reference is detected (unsafe move).
+ */
+async function isDescendant(
+  targetFolder: IFolder,
+  destinationFolder: IFolder,
+  user: IUser
+): Promise<boolean> {
+  if (destinationFolder.parent === null) return false
+
+  if (targetFolder._id.toString() === destinationFolder.parent.toString())
+    return true
+
+  const parentDestinationFolder = (await Folder.findOne({
+    _id: destinationFolder.parent,
+    owner: user._id,
+  }).lean()) as IFolder
+
+  if (!parentDestinationFolder) return false
+
+  return isDescendant(targetFolder, parentDestinationFolder, user)
+}
+
+export {
+  getCloudinaryParamsFromUrl,
+  getUsedPercentage,
+  bytesToGB,
+  isDescendant,
+}
