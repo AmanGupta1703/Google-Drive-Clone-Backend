@@ -1027,3 +1027,28 @@ Just because you are working with two different database models (Files and Folde
 
 - **Parallel Query Resolution**: Leveraged `Promise.all` inside folder contexts to concurrently pull target records and landing destinations, dropping database execution delays.
 - **Vertical Climbing Logic**: Designed `isDescendant` to dynamically verify parent node assignments using strict individual client tracking blocks (`owner: user._id`) at each recursive layer.
+
+---
+
+### 🔄 Day 29: Optimized Cascading Folder Deletion ⭐
+
+| Feature / Utility               | Mechanism                           | Purpose                                                                                               |
+| :------------------------------ | :---------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| **`deleteFolder` Controller**   | Batched Parallel Pipeline           | Orchestrates network teardowns, atomic database sweeps, and total storage recoveries.                 |
+| **`getNestedFolderIds` Helper** | Asynchronous Tree-Walking Recursion | Recursively tracks down nested folder hierarchies to generate a flat list of all target deletion IDs. |
+
+---
+
+## Commit: b83d916
+
+### What I Did
+
+- **Hierarchical Tree Traversal**: Developed a type-safe, recursive tree-walking utility (`getNestedFolderIds`) to cleanly map structural child layers down to the deepest branch.
+- **Concurrent Cloud Destruction**: Integrated a highly efficient network execution strategy using `Promise.all` to wipe target file binaries from Cloudinary simultaneously.
+- **Aggregated Storage Reclaim**: Built an inline reduction engine (`.reduce()`) to calculate the exact structural payload weight in memory before running a single atomic database decrement.
+- **Bulk Database Purges**: Consolidated the final backend teardown sequence into concurrent `deleteMany` and `findOneAndUpdate` blocks, eliminating sequential loop bottlenecks.
+
+### Technical Insights
+
+- **Asynchronous Execution Streams**: Utilized JavaScript spread syntax (`...`) inside a strict sequential `for...of` loop to safely track recursive promises without dropping deep child layers.
+- **Intentional Error Propagation**: Configured localized error evaluation checks (`instanceof ApiError`) to prevent custom network status exceptions from being swallowed by generic fallback catch blocks.
