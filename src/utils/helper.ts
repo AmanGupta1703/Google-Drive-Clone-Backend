@@ -70,9 +70,36 @@ async function isDescendant(
   return isDescendant(targetFolder, parentDestinationFolder, user)
 }
 
+async function getNestedFolderIds(
+  targetId: string,
+  user: IUser
+): Promise<string[]> {
+  if (!targetId || !user) return []
+
+  let foldersIdsToDelete: string[] = [targetId]
+
+  const childFolders = await Folder.find({
+    parent: targetId,
+    owner: user._id,
+  }).lean()
+
+  if (childFolders.length === 0) return foldersIdsToDelete
+
+  for (const folder of childFolders) {
+    const folderIds = (await getNestedFolderIds(
+      folder._id.toString(),
+      user
+    )) as string[]
+    foldersIdsToDelete.push(...folderIds)
+  }
+
+  return foldersIdsToDelete
+}
+
 export {
   getCloudinaryParamsFromUrl,
   getUsedPercentage,
   bytesToGB,
   isDescendant,
+  getNestedFolderIds,
 }

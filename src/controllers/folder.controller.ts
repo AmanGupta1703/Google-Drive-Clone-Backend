@@ -1,13 +1,18 @@
 import type { Response } from 'express'
-import { Types } from 'mongoose'
 
 import { Folder } from '../models/folder.model.js'
 import { File } from '../models/file.model.js'
+import { Storage } from '../models/storage.model.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js'
 import { ApiError } from '../utils/ApiError.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
+import { deleteFileOnCloudinary } from '../utils/cloudinary.js'
+import {
+  getCloudinaryParamsFromUrl,
+  getNestedFolderIds,
+} from '../utils/helper.js'
 
 const createFolder = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -177,4 +182,108 @@ const getFolderDetails = asyncHandler(
   }
 )
 
-export { createFolder, renameFolder, getFolderDetails }
+const deleteFolder = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req?.user
+
+    if (!user) {
+      throw new ApiError(
+        HttpStatus.UNAUTHORIZED,
+        'You need to be logged in to view folder details.'
+      )
+    }
+
+    const { folderId } = req.params
+
+    const folder = await Folder.findOne({
+      _id: folderId as string,
+      owner: user._id,
+    })
+
+    if (!folder) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'Folder not found.')
+    }
+
+    const foldersIdsToDelete = await getNestedFolderIds(
+      folder._id.toString(),
+      user
+    )
+
+    const filesToDelete = await File.find({
+      owner: user._id,
+      folder: { $in: foldersIdsToDelete },
+    }).lean()
+
+    const cloudinaryDeleteParams = filesToDelete.map((f) =>
+      getCloudinaryParamsFromUrl(f.fileUrl)
+    )
+
+    const totalSizeToReclaim = filesToDelete.reduce(
+      (total, file) => total + file.size,
+      0
+    )
+
+    try {
+      const cloudinaryResponses = await Promise.all(
+        cloudinaryDeleteParams.map(({ resource_type, publicId }) =>
+          deleteFileOnCloudinary(publicId as string, resource_type)
+        )
+      )
+
+      for (const response of cloudinaryResponses) {
+        if (response?.result !== 'ok' && response?.result !== 'not_found') {
+          throw new ApiError(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            'Cloud asset deletion failed or rejected'
+          )
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw err
+      }
+
+      if (err instanceof Error) {
+        throw new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, err.message)
+      }
+
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to delete files from Cloudinary'
+      )
+    }
+
+    try {
+      await Promise.all([
+        Storage.findOneAndUpdate(
+          { owner: user._id },
+          { $inc: { usedStorage: -totalSizeToReclaim } },
+          { new: true }
+        ),
+        File.deleteMany({
+          owner: user._id,
+          folder: { $in: foldersIdsToDelete },
+        }),
+        Folder.deleteMany({
+          owner: user._id,
+          _id: { $in: foldersIdsToDelete },
+        }),
+      ])
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        throw new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, err.message)
+      }
+
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to delete folders and files'
+      )
+    }
+
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse(HttpStatus.OK, {}, 'Folder deleted successfully.'))
+  }
+)
+
+export { createFolder, renameFolder, getFolderDetails, deleteFolder }
