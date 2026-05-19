@@ -10,18 +10,19 @@ import {
   uploadFile,
   getFileDetails,
 } from '../controllers/file.controller.js'
-import { getContent } from '../controllers/directory.controller.js'
 
 const router = Router()
 
 router.use(verifyJWT)
 
 router.route('/upload').post(upload.single('file'), uploadFile)
-router.route('/content').get(getContent)
-router.route('/rename/:fileId').patch(renameFile)
-router.route('/delete/:fileId').delete(deleteFile)
 router.route('/star/:fileId').patch(toggleStarFile)
 router.route('/starred').get(getStarredContent)
-router.route('/details/:fileId').get(getFileDetails)
+
+router
+  .route('/:fileId')
+  .get(getFileDetails)
+  .patch(renameFile)
+  .delete(deleteFile)
 
 export default router
