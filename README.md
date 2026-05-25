@@ -1052,3 +1052,34 @@ Just because you are working with two different database models (Files and Folde
 
 - **Asynchronous Execution Streams**: Utilized JavaScript spread syntax (`...`) inside a strict sequential `for...of` loop to safely track recursive promises without dropping deep child layers.
 - **Intentional Error Propagation**: Configured localized error evaluation checks (`instanceof ApiError`) to prevent custom network status exceptions from being swallowed by generic fallback catch blocks.
+
+---
+
+### 🔄 Day 30: Production-Grade Authentication & Security Lockdowns ⭐
+
+| Feature / Utility           | Mechanism                | Purpose                                                                                                           |
+| :-------------------------- | :----------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| **`createUser` Controller** | Memory-Level Sanitation  | Creates accounts and default storage profiles while blocking password leaks by deleting hashes in memory.         |
+| **`login` Controller**      | Single-Query Pipeline    | Validates credentials and issues tokens in one database trip by removing redundant lookups.                       |
+| **`logout` Controller**     | Shared Config & `$unset` | Revokes sessions cleanly by unsetting DB keys and dropping browser cookies across a synchronized scope.           |
+| **`refreshAccessToken`**    | Cryptographic Isolation  | Separates token validation from the database layer and stops token replay attacks via explicit stored-key checks. |
+| **`changePassword`**        | Async Synchronization    | Ensures updates completely finish using strict async awaiting while blocking identical password reuse.            |
+| **`updateAccountDetails`**  | Anti-Collision Patching  | Updates profile text metadata dynamically while validating email uniqueness to avoid data contamination.          |
+
+---
+
+## Commit: f248541
+
+### What I Did
+
+- **Isolated Token Verification**: Moved `jwt.verify` into its own scope so database issues don't mask as invalid token errors.
+- **In-Memory Sanitation**: Swapped redundant database lookups for fast `.toObject()` memory modifications to strip out password hashes.
+- **Replay Attack Patch**: Added a strict equality check matching client tokens against the database state to stop revoked keys from working.
+- **Fixed Race Conditions**: Added the missing `await` to `user.save()` inside the password modifier to ensure it saves before responding.
+- **Email Collision Check**: Layered a conditional `$ne` (not-equal) query into updates to stop users from hijacking other accounts' emails.
+- **Fixed Hanging Server**: Changed a `return new ApiError` mistake into a proper `throw` statement so the backend doesn't freeze.
+
+### Technical Insights
+
+- **Shared Cookie Options**: Unified all cookie parameters under a shared global configuration to prevent `clearCookie` tasks from failing due to route scoping issues.
+- **Consistent Status Codes**: Aligned missing payload errors to systematically return a standard `400 Bad Request` across all endpoints.
