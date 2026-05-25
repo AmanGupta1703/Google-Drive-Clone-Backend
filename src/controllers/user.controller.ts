@@ -15,6 +15,13 @@ import type {
   AuthenticatedRequest,
   AuthJwtPayload,
 } from '../middlewares/auth.middleware.js'
+import { Storage } from '../models/storage.model.js'
+
+const options = {
+  httpOnly: true,
+  secure: true,
+  path: '/',
+}
 
 const generateAccessAndRefreshToken = async (userId: Types.ObjectId) => {
   try {
@@ -63,12 +70,17 @@ const createUser = asyncHandler(async (req: Request, res: Response) => {
     )
   }
 
+  await Storage.create({ owner: createdUser._id })
+
+  const userResponse = createdUser.toObject()
+  delete (userResponse as Partial<IUser>).password
+
   return res
     .status(HttpStatus.CREATED)
     .json(
       new ApiResponse<IUser>(
         HttpStatus.OK,
-        createdUser,
+        userResponse,
         'User registered successfully'
       )
     )
@@ -78,7 +90,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body
 
   if (!email || !password) {
-    throw new ApiError(HttpStatus.UNAUTHORIZED, 'All fields are required')
+    throw new ApiError(HttpStatus.BAD_REQUEST, 'All fields are required')
   }
 
   const user = await User.findOne({ email })
@@ -97,14 +109,9 @@ const login = asyncHandler(async (req: Request, res: Response) => {
     user._id
   )
 
-  const loggedInUser = await User.findById(user._id).select(
-    '-password -refreshToken'
-  )
-
-  const options = {
-    httpOnly: true,
-    secure: true,
-  }
+  const userResponse = user.toObject()
+  delete (userResponse as Partial<IUser>).password
+  delete (userResponse as Partial<IUser>).refreshToken
 
   return res
     .status(HttpStatus.OK)
@@ -114,7 +121,7 @@ const login = asyncHandler(async (req: Request, res: Response) => {
       new ApiResponse(
         HttpStatus.OK,
         {
-          user: loggedInUser,
+          user: userResponse,
           accessToken,
           refreshToken,
         },
@@ -135,11 +142,6 @@ const logout = asyncHandler(
       { new: true }
     )
 
-    const options = {
-      httpOnly: true,
-      secure: true,
-    }
-
     res
       .status(HttpStatus.OK)
       .clearCookie('accessToken', options)
@@ -156,45 +158,59 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(HttpStatus.UNAUTHORIZED, 'unauthorized request')
   }
 
+  let decoded: AuthJwtPayload
+
   try {
-    const decoded = jwt.verify(
+    decoded = jwt.verify(
       incomingRefreshToken,
       config.auth.refreshToken.secret
     ) as AuthJwtPayload
-
-    const user = await User.findById(decoded._id)
-
-    if (!user) {
-      throw new ApiError(HttpStatus.UNAUTHORIZED, 'Invalid refresh token')
-    }
-
-    const { accessToken, refreshToken: newRefreshToken } =
-      await generateAccessAndRefreshToken(user._id)
-
-    const options = {
-      httpOnly: true,
-      secure: true,
-    }
-
-    return res
-      .status(HttpStatus.OK)
-      .cookie('accessToken', accessToken, options)
-      .cookie('refreshToken', newRefreshToken, options)
-      .json(
-        new ApiResponse(
-          HttpStatus.OK,
-          { accessToken, refreshToken: newRefreshToken },
-          'Access token refreshed'
-        )
-      )
   } catch (error) {
+    throw new ApiError(
+      HttpStatus.UNAUTHORIZED,
+      'Invalid or expired refresh token'
+    )
+  }
+
+  const user = await User.findById(decoded._id)
+
+  if (!user) {
     throw new ApiError(HttpStatus.UNAUTHORIZED, 'Invalid refresh token')
   }
+
+  if (incomingRefreshToken !== user.refreshToken) {
+    throw new ApiError(
+      HttpStatus.UNAUTHORIZED,
+      'Refresh token is expired or used'
+    )
+  }
+
+  const { accessToken, refreshToken: newRefreshToken } =
+    await generateAccessAndRefreshToken(user._id)
+
+  return res
+    .status(HttpStatus.OK)
+    .cookie('accessToken', accessToken, options)
+    .cookie('refreshToken', newRefreshToken, options)
+    .json(
+      new ApiResponse(
+        HttpStatus.OK,
+        { accessToken, refreshToken: newRefreshToken },
+        'Access token refreshed'
+      )
+    )
 })
 
 const changePassword = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { oldPassword, newPassword, confirmPassword } = req.body
+
+    if (oldPassword === newPassword) {
+      throw new ApiError(
+        HttpStatus.BAD_REQUEST,
+        'New password cannot be the same as your current password'
+      )
+    }
 
     const user = await User.findById(req.user?._id)
 
@@ -219,7 +235,7 @@ const changePassword = asyncHandler(
     }
 
     user.password = newPassword
-    user?.save({ validateBeforeSave: false })
+    await user?.save({ validateBeforeSave: false })
 
     return res
       .status(HttpStatus.OK)
@@ -229,6 +245,12 @@ const changePassword = asyncHandler(
 
 const updateAccountDetails = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
+    const user = await User.findById(req.user?._id)
+
+    if (!user) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'User not found')
+    }
+
     const { email, fullName } = req.body
 
     if (!email && !fullName) {
@@ -241,10 +263,22 @@ const updateAccountDetails = asyncHandler(
     const updateData: Partial<Pick<IUser, 'email' | 'fullName'>> = {}
 
     if (fullName) updateData.fullName = fullName
-    if (email) updateData.email = email
+    if (email) {
+      const emailTaken = await User.findOne({
+        email,
+        _id: { $ne: user._id },
+      })
+      if (emailTaken) {
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          'Email address is already taken'
+        )
+      }
+      updateData.email = email
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
-      req?.user?._id,
+      user._id,
       {
         $set: updateData,
       },
@@ -254,7 +288,7 @@ const updateAccountDetails = asyncHandler(
     ).select('-password -refreshToken')
 
     if (!updatedUser) {
-      return new ApiError(HttpStatus.NOT_FOUND, 'User does not exists')
+      throw new ApiError(HttpStatus.NOT_FOUND, 'User does not exists')
     }
 
     return res
