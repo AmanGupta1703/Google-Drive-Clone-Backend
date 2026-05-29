@@ -1083,3 +1083,34 @@ Just because you are working with two different database models (Files and Folde
 
 - **Shared Cookie Options**: Unified all cookie parameters under a shared global configuration to prevent `clearCookie` tasks from failing due to route scoping issues.
 - **Consistent Status Codes**: Aligned missing payload errors to systematically return a standard `400 Bad Request` across all endpoints.
+
+---
+
+### 🔄 Day 31: Bulletproof File Management & Transactional Safeguards ⭐
+
+| Feature / Utility                  | Mechanism                      | Purpose                                                                                                                                        |
+| :--------------------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`renameFile` Controller**        | Boundary-Safe Slicing          | Preserves file extensions via `.lastIndexOf('.')` and runs duplicate checks against the final filename to block naming collisions.             |
+| **`deleteFile` Controller**        | Reverse-Order Execution        | Commits MongoDB metadata and storage adjustments inside a transaction before hitting Cloudinary, keeping database states accurate.             |
+| **`toggleStarFile` Controller**    | In-Memory Inversion & `$set`   | Pulls the active document and switches favorites via explicit booleans, eliminating Mongoose aggregation path `CastError` bugs.                |
+| **`getStarredContent` Controller** | Parallel Stream Processing     | Groups file and folder reads into a single concurrent `Promise.all` runtime block while using `.lean()` to speed up dashboard loads.           |
+| **`getFileDetails` Controller**    | Valid Query Chaining           | Strips out unsafe syntax operators from execution strings to prevent runtime compiler crashes during document reads.                           |
+| **`uploadFile` Controller**        | Atomic Rollback & Safe Cleanup | Chains storage checks, local file unlinks, cloud syncs, and database transactions into an all-or-nothing pipeline to stop storage count leaks. |
+
+---
+
+## Commit: dc04232
+
+### What I Did
+
+- **Fixed Duplicate Name Collisions**: Shifted the `duplicateName` check to run _after_ file extension reconstruction to prevent users from bypassing name validations.
+- **Added Atomic Transactions**: Wrapped storage allocation adjustments and file model mutations into isolated Mongoose sessions to ensure database states match.
+- **Reversed Deletion Pipelines**: Reordered the removal sequence to update local records first, ensuring broken cloud network calls never leave orphan records behind.
+- **Resolved Schema Casting Errors**: Swapped out experimental query inversion operations for a robust, explicit boolean assignment to prevent database validation failures.
+- **Fixed File Double-Deletion Crashes**: Implemented existence verifications (`fs.existsSync`) before running file system unlinks, fixing `ENOENT` server crashes during error states.
+- **Added Cloud Rollback Protections**: Wired a automated asset removal routine inside transaction `catch` blocks to clean up Cloudinary assets if a database transaction fails.
+
+### Technical Insights
+
+- **State Syncing in Distributed Systems**: Managed multi-layered rollbacks across separate data layers (local server disk, third-party cloud storage, and MongoDB clusters) to eliminate data mismatch states.
+- **Mongoose Session Formatting**: Structured document creation arrays (`File.create([payload], { session })`) to cleanly interact with active transactions while extracting the underlying object using array indexing (`[0]`).
