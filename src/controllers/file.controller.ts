@@ -15,6 +15,7 @@ import {
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { HttpStatus } from '../utils/HttpStatus.js'
 import { getCloudinaryParamsFromUrl } from '../utils/helper.js'
+import mongoose from 'mongoose'
 
 const uploadFile = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -48,6 +49,7 @@ const uploadFile = asyncHandler(
       })
 
       if (!folder) {
+        fs.unlinkSync(localFilePath)
         throw new ApiError(HttpStatus.NOT_FOUND, 'Folder not found.')
       }
     }
@@ -77,6 +79,7 @@ const uploadFile = asyncHandler(
     )
 
     if (!storage) {
+      fs.unlinkSync(localFilePath)
       throw new ApiError(
         HttpStatus.NOT_FOUND,
         'Storage with user id not found.'
@@ -101,15 +104,14 @@ const uploadFile = asyncHandler(
     const cloudinaryFile = await uploadOnCloudinary(localFilePath)
 
     if (!cloudinaryFile) {
+      if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath)
       throw new ApiError(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'Failed to upload file to Cloudinary'
       )
     }
 
-    await Storage.findByIdAndUpdate(storage._id, {
-      $inc: { usedStorage: cloudinaryFile.bytes },
-    })
+    if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath)
 
     const mimeType =
       cloudinaryFile.resource_type === 'raw'
@@ -118,22 +120,52 @@ const uploadFile = asyncHandler(
           ? 'application/pdf'
           : `${cloudinaryFile.resource_type}/${cloudinaryFile.format}`
 
-    const uploadedFile = await File.create({
-      owner: user._id,
-      folder: folderId,
-      size: cloudinaryFile.bytes,
-      mimeType,
-      fileUrl: cloudinaryFile.url,
-      publicId: cloudinaryFile.public_id,
-      name: req.file?.originalname as string,
-    })
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    let uploadedFile
+    try {
+      await Storage.findByIdAndUpdate(
+        storage._id,
+        {
+          $inc: { usedStorage: cloudinaryFile.bytes },
+        },
+        { session }
+      )
+
+      uploadedFile = await File.create(
+        [
+          {
+            owner: user._id,
+            folder: folderId,
+            size: cloudinaryFile.bytes,
+            mimeType,
+            fileUrl: cloudinaryFile.url,
+            publicId: cloudinaryFile.public_id,
+            name: req.file?.originalname as string,
+          },
+        ],
+        { session }
+      )
+
+      await session.commitTransaction()
+    } catch (error) {
+      await session.abortTransaction()
+      await deleteFileOnCloudinary(
+        cloudinaryFile.public_id,
+        cloudinaryFile.resource_type
+      )
+      throw error
+    } finally {
+      session.endSession()
+    }
 
     return res
       .status(HttpStatus.CREATED)
       .json(
         new ApiResponse(
           HttpStatus.CREATED,
-          uploadedFile,
+          uploadedFile[0],
           'File uploaded successfully.'
         )
       )
@@ -147,14 +179,14 @@ const renameFile = asyncHandler(
     if (!user) {
       throw new ApiError(
         HttpStatus.UNAUTHORIZED,
-        'You need to be logged in to upload a file.'
+        'You need to be logged in to rename a file.'
       )
     }
 
     const { fileId } = req.params
     const { newName } = req.body
 
-    if (!newName) {
+    if (!newName || newName.trim() === '') {
       throw new ApiError(HttpStatus.BAD_REQUEST, 'New name is required.')
     }
 
@@ -163,16 +195,25 @@ const renameFile = asyncHandler(
       owner: user._id,
     })
 
-    console.log(fileToRename)
-
     if (!fileToRename) {
       throw new ApiError(HttpStatus.NOT_FOUND, 'File does not exist.')
     }
 
+    const lastDotIndex = fileToRename.name.lastIndexOf('.')
+    const extension =
+      lastDotIndex > 0 ? fileToRename.name.slice(lastDotIndex) : ''
+
+    let cleanNewName = newName.trim()
+    if (extension && cleanNewName.endsWith(extension)) {
+      cleanNewName = cleanNewName.slice(0, -extension.length)
+    }
+
+    const finalSanitizedName = `${cleanNewName}${extension}`
+
     const duplicateName = await File.findOne({
       owner: user._id,
       folder: fileToRename.folder,
-      name: newName.trim(),
+      name: finalSanitizedName,
       _id: { $ne: fileToRename._id },
     })
 
@@ -183,7 +224,7 @@ const renameFile = asyncHandler(
       )
     }
 
-    fileToRename.name = newName.trim()
+    fileToRename.name = finalSanitizedName
 
     const updatedFile = await fileToRename.save()
 
@@ -206,7 +247,7 @@ const deleteFile = asyncHandler(
     if (!user) {
       throw new ApiError(
         HttpStatus.UNAUTHORIZED,
-        'You need to be logged in to upload a file.'
+        'You need to be logged in to delete a file.'
       )
     }
 
@@ -219,6 +260,33 @@ const deleteFile = asyncHandler(
 
     if (!existingFile) {
       throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
+    }
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    try {
+      await Storage.findOneAndUpdate(
+        { owner: user._id },
+        { $inc: { usedStorage: -existingFile.size } },
+        { session, new: true }
+      )
+
+      await File.findOneAndDelete(
+        {
+          _id: fileId as string,
+          owner: user._id,
+          folder: existingFile.folder,
+        },
+        { session }
+      )
+
+      await session.commitTransaction()
+    } catch (error) {
+      await session.abortTransaction()
+      throw error
+    } finally {
+      session.endSession()
     }
 
     const { resource_type, publicId } = getCloudinaryParamsFromUrl(
@@ -236,18 +304,6 @@ const deleteFile = asyncHandler(
         'Cloud deletion failed'
       )
     }
-
-    await Storage.findOneAndUpdate(
-      { owner: user._id },
-      { $inc: { usedStorage: -existingFile.size } },
-      { new: true }
-    )
-
-    await File.findOneAndDelete({
-      _id: fileId as string,
-      owner: user._id,
-      folder: existingFile.folder,
-    })
 
     return res
       .status(HttpStatus.OK)
@@ -268,22 +324,28 @@ const toggleStarFile = asyncHandler(
 
     const { fileId } = req.params
 
-    const file = await File.findOne({ owner: user._id, _id: fileId as string })
+    const file = await File.findOne({ _id: fileId as string, owner: user._id })
 
     if (!file) {
       throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
     }
 
-    file.isStarred = !file.isStarred
+    const updatedFile = await File.findOneAndUpdate(
+      { _id: fileId as string, owner: user._id },
+      { $set: { isStarred: !file.isStarred } },
+      { new: true, timestamps: false }
+    ).select('isStarred')
 
-    await file.save({ validateBeforeSave: false })
+    if (!updatedFile) {
+      throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
+    }
 
     return res
       .status(HttpStatus.OK)
       .json(
         new ApiResponse(
           HttpStatus.OK,
-          { isStarred: file.isStarred },
+          { isStarred: updatedFile.isStarred },
           'File star status toggled successfully.'
         )
       )
@@ -309,14 +371,14 @@ const getStarredContent = asyncHandler(
     const totalStarred = starredFiles.length + starredFolders.length
 
     return res
-      .status(200)
+      .status(HttpStatus.OK)
       .json(
         new ApiResponse(
-          200,
+          HttpStatus.OK,
           { files: starredFiles, folders: starredFolders, totalStarred },
           totalStarred > 0
             ? `${totalStarred} records marked as starred`
-            : 'No records marked as starred'
+            : 'No content marked as starred'
         )
       )
   }
@@ -338,7 +400,7 @@ const getFileDetails = asyncHandler(
     const file = await File.findOne({
       _id: fileId as string,
       owner: user._id,
-    })?.lean()
+    }).lean()
 
     if (!file) {
       throw new ApiError(HttpStatus.NOT_FOUND, 'File not found.')
