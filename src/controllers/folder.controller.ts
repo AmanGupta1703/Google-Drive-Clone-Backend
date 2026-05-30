@@ -13,6 +13,7 @@ import {
   getCloudinaryParamsFromUrl,
   getNestedFolderIds,
 } from '../utils/helper.js'
+import mongoose from 'mongoose'
 
 const createFolder = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -31,13 +32,16 @@ const createFolder = asyncHandler(
       throw new ApiError(HttpStatus.BAD_REQUEST, 'Folder name is required.')
     }
 
-    if (
-      parentId in req.body &&
-      parentId !== 'null' &&
-      parentId !== 'undefined' &&
-      parentId
-    ) {
-      const parent = await Folder.findOne({ _id: parentId, owner: user._id })
+    const sanitizedParentId =
+      parentId === 'null' || parentId === 'undefined' || !parentId
+        ? null
+        : parentId
+
+    if (sanitizedParentId) {
+      const parent = await Folder.findOne({
+        _id: sanitizedParentId,
+        owner: user._id,
+      })
       if (!parent) {
         throw new ApiError(HttpStatus.NOT_FOUND, 'Parent folder not found.')
       }
@@ -46,6 +50,7 @@ const createFolder = asyncHandler(
     const existingFolder = await Folder.findOne({
       owner: user._id,
       name: name.trim(),
+      parent: sanitizedParentId,
     })
 
     if (existingFolder) {
@@ -58,7 +63,7 @@ const createFolder = asyncHandler(
     const newFolder = await Folder.create({
       name: name.trim(),
       owner: user._id,
-      parent: parentId || null,
+      parent: sanitizedParentId,
     })
 
     if (!newFolder) {
@@ -87,7 +92,7 @@ const renameFolder = asyncHandler(
     if (!user) {
       throw new ApiError(
         HttpStatus.UNAUTHORIZED,
-        'You need to be logged in to create a folder.'
+        'You need to be logged in to rename a folder.'
       )
     }
 
@@ -97,6 +102,8 @@ const renameFolder = asyncHandler(
     if (!newName) {
       throw new ApiError(HttpStatus.BAD_REQUEST, 'New name is required.')
     }
+
+    const sanitizedNewName = newName.trim()
 
     const existingFolder = await Folder.findOne({
       _id: folderId as string,
@@ -111,7 +118,7 @@ const renameFolder = asyncHandler(
       _id: { $ne: folderId as string },
       owner: user._id,
       parent: existingFolder.parent,
-      name: newName.trim(),
+      name: sanitizedNewName,
     })
 
     if (duplicateFoldername) {
@@ -121,7 +128,7 @@ const renameFolder = asyncHandler(
       )
     }
 
-    existingFolder.name = newName
+    existingFolder.name = sanitizedNewName
 
     const updatedFolder = await existingFolder.save()
 
@@ -160,14 +167,14 @@ const getFolderDetails = asyncHandler(
     }
 
     const [totalFolders, totalFiles] = await Promise.all([
-      Folder.find({
+      Folder.countDocuments({
         owner: user._id,
         parent: folderId as string,
-      }).countDocuments(),
-      File.find({
+      }),
+      File.countDocuments({
         owner: user._id,
         folder: folderId as string,
-      }).countDocuments(),
+      }),
     ])
 
     return res
@@ -189,7 +196,7 @@ const deleteFolder = asyncHandler(
     if (!user) {
       throw new ApiError(
         HttpStatus.UNAUTHORIZED,
-        'You need to be logged in to view folder details.'
+        'You need to be logged in to delete a folder.'
       )
     }
 
@@ -223,6 +230,45 @@ const deleteFolder = asyncHandler(
       0
     )
 
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    try {
+      await Storage.findOneAndUpdate(
+        { owner: user._id },
+        { $inc: { usedStorage: -totalSizeToReclaim } },
+        { new: true, session }
+      )
+
+      await File.deleteMany(
+        {
+          owner: user._id,
+          folder: { $in: foldersIdsToDelete },
+        },
+        { session }
+      )
+
+      await Folder.deleteMany(
+        {
+          owner: user._id,
+          _id: { $in: foldersIdsToDelete },
+        },
+        { session }
+      )
+
+      await session.commitTransaction()
+    } catch (err: unknown) {
+      await session.abortTransaction()
+      throw new ApiError(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        err instanceof Error
+          ? err.message
+          : 'Database nested-delete transaction failed.'
+      )
+    } finally {
+      session.endSession()
+    }
+
     try {
       const cloudinaryResponses = await Promise.all(
         cloudinaryDeleteParams.map(({ resource_type, publicId }) =>
@@ -232,52 +278,13 @@ const deleteFolder = asyncHandler(
 
       for (const response of cloudinaryResponses) {
         if (response?.result !== 'ok' && response?.result !== 'not_found') {
-          throw new ApiError(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            'Cloud asset deletion failed or rejected'
+          console.error(
+            `Cloud asset skip verification notice: ${response?.result}`
           )
         }
       }
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        throw err
-      }
-
-      if (err instanceof Error) {
-        throw new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, err.message)
-      }
-
-      throw new ApiError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to delete files from Cloudinary'
-      )
-    }
-
-    try {
-      await Promise.all([
-        Storage.findOneAndUpdate(
-          { owner: user._id },
-          { $inc: { usedStorage: -totalSizeToReclaim } },
-          { new: true }
-        ),
-        File.deleteMany({
-          owner: user._id,
-          folder: { $in: foldersIdsToDelete },
-        }),
-        Folder.deleteMany({
-          owner: user._id,
-          _id: { $in: foldersIdsToDelete },
-        }),
-      ])
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        throw new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, err.message)
-      }
-
-      throw new ApiError(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to delete folders and files'
-      )
+      console.error('Cloudinary cleanup deferred or interrupted:', err)
     }
 
     return res
