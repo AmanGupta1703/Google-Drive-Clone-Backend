@@ -1114,3 +1114,31 @@ Just because you are working with two different database models (Files and Folde
 
 - **State Syncing in Distributed Systems**: Managed multi-layered rollbacks across separate data layers (local server disk, third-party cloud storage, and MongoDB clusters) to eliminate data mismatch states.
 - **Mongoose Session Formatting**: Structured document creation arrays (`File.create([payload], { session })`) to cleanly interact with active transactions while extracting the underlying object using array indexing (`[0]`).
+
+---
+
+### 🔄 Day 32: Advanced Folder Infrastructure & Sequential Transactions 📁
+
+| Feature / Utility                 | Mechanism                           | Purpose                                                                                                                                   |
+| :-------------------------------- | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`createFolder` Controller**     | Sanitized Parent Pointer Evaluation | coerces stringified request payloads (`'null'`) to primitive types to maintain correct root directory indexing.                           |
+| **`renameFolder` Controller**     | Trimmed Local Boundary Matching     | Cleans whitespace inputs and validates names against folders sharing the same parent pointer to allow identical subfolder names globally. |
+| **`getFolderDetails` Controller** | Direct Model B-Tree Counting        | Replaces cursor scans with direct index counts, reducing database memory footprints to zero bytes.                                        |
+| **`deleteFolder` Controller**     | Sequential Transactional Purging    | Runs multi-collection mutations sequentially within an active database session, resolving MongoDB transaction sequence number bugs.       |
+
+---
+
+## Commit: 44be22c
+
+### What I Did
+
+- **Fixed Folder Scope Collisions**: Refactored the name uniqueness validation engine to include the active `parent` pointer configuration, allowing matching subfolder schemas across different branches.
+- **Eliminated Cursor Memory Footprints**: Upgraded statistics parsing inside folder detail routines to run straight against database indexes, protecting the server from high-capacity folder crashes.
+- **Neutralized Transactional Out-Of-Order Race Conditions**: Swapped parallel mutation streams (`Promise.all`) inside the folder deletion handler for predictable, sequential execution steps, resolving MongoDB tracking mismatches.
+- **Secured File-Quota Coherence**: Bound data mutations and system-wide byte reclamation changes into an isolated atomic workflow to guarantee that your user storage analytics remain synchronized.
+- **Sanitized String Artifact Fields**: Standardized runtime parameter handlers across creation and renaming workflows to prevent trailing whitespaces from corrupting data records.
+
+### Technical Insights
+
+- **Atomic Sequence Boundaries**: Learned that high-frequency asynchronous mutations passing down a shared session pipe can arrive out-of-order at the database engine. Standardizing to sequential operations guarantees proper synchronization inside transactional environments.
+- **Primitive State Sanitation**: Unified text processing and type parsing layers before reaching data collection queries to protect system sorting patterns and directory integrity.
